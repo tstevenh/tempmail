@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inbox — Temp Mail</title>
+<meta name="description" content="Your temporary email inbox. Receive verification emails and OTP codes in real time." />
+<meta name="robots" content="noindex, follow" />
+<meta name="theme-color" content="#5046E5" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:oklch(0.993 0.002 274);--surface:oklch(0.979 0.004 274);--surface2:oklch(0.963 0.006 274);
+  --border:oklch(0.918 0.006 274);--border2:oklch(0.86 0.009 274);
+  --ink:oklch(0.265 0.024 274);--muted:oklch(0.515 0.021 274);--soft:oklch(0.63 0.018 274);
+  --accent:oklch(0.55 0.205 274);--accent-hover:oklch(0.49 0.215 274);--accent-weak:oklch(0.955 0.028 274);--accent-ink:oklch(0.46 0.2 274);--ok:oklch(0.62 0.15 150);--danger:oklch(0.575 0.2 25);
+  --shadow-sm:0 1px 2px oklch(0.3 0.05 274/.07);--shadow-lg:0 4px 10px oklch(0.3 0.05 274/.06),0 24px 50px oklch(0.4 0.13 274/.16);
+}
+html,body{min-height:100%}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+::selection{background:#15171a;color:#fff}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 70px;width:100%}
+
+.nav{display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px;border-bottom:1px solid var(--border);margin-bottom:26px}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.01em;text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:16px}
+.nav-right a,.nav-right button{font-size:13.5px;color:var(--muted);text-decoration:none;background:none;border:0;cursor:pointer;font-family:inherit;padding:0}
+.nav-right a:hover,.nav-right button:hover{color:var(--ink)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+.btn{cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;border:1px solid var(--border2);background:var(--surface2);color:var(--ink);padding:10px 15px;border-radius:8px;transition:.13s;display:inline-flex;align-items:center;gap:7px;justify-content:center;text-decoration:none}
+.btn:hover{border-color:#bcbcc2;background:#ececef}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 2px 10px oklch(0.5 0.2 274/.3)}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.sm{padding:8px 12px;font-size:13px}
+.linkbtn{background:none;border:0;color:var(--soft);font-size:12.5px;cursor:pointer;font-family:inherit}
+.linkbtn:hover{color:var(--ink)}
+
+.card{border:1px solid var(--border);background:var(--surface);border-radius:12px}
+.addr-card{padding:18px}
+.label{font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--soft);margin-bottom:10px}
+.addr-line{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.addr{flex:1;min-width:220px;font-family:"IBM Plex Mono",monospace;font-size:clamp(16px,2.6vw,22px);font-weight:600;word-break:break-all}
+.addr-line .btn{flex-shrink:0}
+
+.inbox{margin-top:18px;overflow:hidden}
+.inbox-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.inbox-head h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px}
+.inbox-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.count{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;background:var(--accent-weak);border-radius:99px;padding:2px 9px;color:var(--accent-ink)}
+.state{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.state .sdot{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
+.spin{display:inline-block;width:11px;height:11px;border-radius:50%;border:2px solid var(--border2);border-top-color:var(--ink);animation:rot .9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.msg-list{list-style:none}
+.msg{display:flex;gap:13px;padding:15px 18px;border-bottom:1px solid var(--border);cursor:pointer;align-items:center;transition:background .1s}
+.msg:last-child{border-bottom:0}
+.msg:hover{background:var(--accent-weak)}
+.avatar{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--accent-weak);border:1px solid oklch(0.55 0.205 274/.16);color:var(--accent-ink)}
+.msg-body{min-width:0;flex:1}
+.msg-top{display:flex;justify-content:space-between;gap:10px}
+.from{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time{font-size:12px;color:var(--soft);flex-shrink:0;font-family:"IBM Plex Mono",monospace}
+.subject{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.preview{font-size:12.5px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.msg-del{opacity:0;flex-shrink:0;color:var(--soft);background:none;border:0;cursor:pointer;font-size:12px;font-family:inherit;padding:4px}
+.msg:hover .msg-del{opacity:1}
+.msg-del:hover{color:#dc2626}
+.empty{padding:50px 18px;text-align:center;color:var(--soft)}
+.empty h3{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.noaddr{text-align:center;padding:64px 24px}
+.noaddr h2{font-size:22px;font-weight:800;margin-bottom:10px}
+.noaddr p{color:var(--muted);max-width:420px;margin:0 auto 20px}
+.footer{border-top:1px solid var(--border);margin-top:34px;padding:22px;text-align:center;color:var(--soft);font-size:12.5px}
+
+.lock{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:22px;background:rgba(255,255,255,.94)}
+.lock.hide{display:none}
+.lock-card{width:min(420px,100%);border:1px solid var(--border2);background:var(--surface);padding:34px 28px;text-align:center;border-radius:14px}
+.lock-card h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.lock-card p{color:var(--muted);font-size:14px}
+.pin-row{display:flex;margin-top:20px;gap:8px}
+.pin-row input{flex:1;min-width:0;border:1px solid var(--border2);background:var(--bg);color:var(--ink);padding:12px 14px;border-radius:8px;font-family:"IBM Plex Mono",monospace;text-align:center;outline:none}
+.err{min-height:20px;color:#dc2626;font-size:12.5px;margin-top:12px}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{width:min(720px,100%);max-height:88vh;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--border2);border-radius:12px;overflow:hidden}
+.modal-head{padding:18px;border-bottom:1px solid var(--border)}
+.modal-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.modal-title h2{font-size:17px;font-weight:700;line-height:1.3}
+.modal-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.close{width:34px;height:34px;border:1px solid var(--border2);background:var(--surface2);color:var(--ink);border-radius:8px;cursor:pointer;font-size:18px}
+.close:hover{background:#ececef}
+.meta{display:flex;align-items:center;gap:11px;margin-top:13px;color:var(--muted);font-size:13px}
+.meta small{display:block;color:var(--soft);font-family:"IBM Plex Mono",monospace;font-size:12px}
+.meta b{font-weight:600}
+.mail-body{overflow:auto}
+.mail-body iframe{width:100%;border:0;background:#fff}
+.text-mail{white-space:pre-wrap;padding:18px;line-height:1.7;font-size:14px}
+.text-mail a{color:var(--accent-ink);word-break:break-all}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(140%);background:var(--ink);color:#fff;font-weight:600;font-size:13px;padding:11px 18px;border-radius:8px;z-index:120;transition:transform .22s}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:640px){.addr-line .btn{flex:1}}
+</style>
+</head>
+<body>
+
+<div class="lock hide" id="lockScreen">
+  <div class="lock-card">
+    <h2>Temp Mail</h2>
+    <p>This inbox is locked. Enter the password to open it.</p>
+    <div class="pin-row"><input id="pinInput" type="password" maxlength="64" placeholder="Password" autocomplete="off" /><button class="btn primary" id="pinBtn">Open</button></div>
+    <div class="err" id="pinErr"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <nav class="nav">
+    <a class="brand" href="/"><img class="mark" src="/favicon.svg" alt="" width="26" height="26" style="border-radius:7px;box-shadow:var(--shadow-sm)" />Temp Mail</a>
+    <div class="nav-right">
+      <a href="/">New Address</a>
+      <span class="live"><span class="dot"></span>Live</span>
+      <a href="__API_BASE__/dashboard" id="dashLink" style="display:none">Dashboard</a>
+      <button id="lockBtn" style="display:none">Lock</button>
+    </div>
+  </nav>
+
+  <div id="hasAddr" style="display:none">
+    <section class="card addr-card">
+      <div class="label">Active inbox address</div>
+      <div class="addr-line">
+        <div class="addr" id="addr">—</div>
+        <button class="btn primary sm" id="copyBtn">Copy</button>
+        <button class="btn sm" id="refreshBtn">Refresh</button>
+      </div>
+    </section>
+
+    <section class="card inbox">
+      <div class="inbox-head">
+        <h2>Inbox <span class="count" id="count">0</span></h2>
+        <div class="inbox-actions">
+          <span class="state" id="state"><span class="spin"></span>Waiting…</span>
+          <button class="linkbtn" id="clearBtn" style="display:none">Clear all</button>
+        </div>
+      </div>
+      <ul class="msg-list" id="list"></ul>
+      <div class="empty" id="empty"><h3>No messages yet</h3><p>Send an email to the address above — messages appear here automatically, in real time.</p></div>
+    </section>
+  </div>
+
+  <section class="card noaddr" id="noAddr" style="display:none">
+    <h2>No inbox address yet</h2>
+    <p>You haven't created an email address. Go to the home page to create one, then open your inbox.</p>
+    <a class="btn primary" href="/">Create an email address &rarr;</a>
+  </section>
+
+  <p class="footer">Temp Mail — Free Temporary &amp; Disposable Email Service</p>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">
+        <h2 id="mSubject">Subject</h2>
+        <div class="modal-actions">
+          <button class="close" id="mDeleteBtn" title="Delete" style="width:auto;padding:0 12px;font-size:13px">Delete</button>
+          <button class="close" id="closeBtn">&times;</button>
+        </div>
+      </div>
+      <div class="meta">
+        <span class="avatar" id="mAvatar" style="width:34px;height:34px;font-size:13px">T</span>
+        <div><b id="mFrom">Sender</b><small id="mMail">sender@mail.com</small></div>
+        <small id="mDate" style="margin-left:auto"></small>
+      </div>
+    </div>
+    <div class="mail-body" id="mBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Copied</div>
+
+<script>
+let SITE = (function(){try{return __SITE_CONFIG__}catch(e){return null}})() || {};
+const CONFIG = { domains: SITE.domains || __MAIL_DOMAINS__, requirePin: SITE.requirePin===true, portalMode: !!SITE.portalMode };
+const $ = id => document.getElementById(id);
+function getParam(n){try{return new URLSearchParams(location.search).get(n)||'';}catch(e){return '';}}
+let currentAddress = (getParam('address')||localStorage.getItem('ym_address')||'').trim().toLowerCase();
+if(currentAddress)localStorage.setItem('ym_address',currentAddress);
+let messages = [];
+let currentMsgKey = null;
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function normalizeUrl(url){let u=String(url||'').trim();if(!/^https?:\/\//i.test(u))u='https://'+u;return u}
+function linkifyText(text){const escaped=esc(text||'');const re=/((?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s<]*)?)/gi;return escaped.replace(re,(raw)=>{let clean=raw.replace(/[),.;!?]+$/,'');let tail=raw.slice(clean.length);const href=normalizeUrl(clean);return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${clean}</a>${tail}`})}
+function linkifyHtml(html){const wrap=document.createElement('div');wrap.innerHTML=html||'';wrap.querySelectorAll('a[href]').forEach(a=>{a.setAttribute('target','_blank');a.setAttribute('rel','noopener noreferrer')});return wrap.innerHTML}
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout($('toast')._t);$('toast')._t=setTimeout(()=>$('toast').classList.remove('show'),2200)}
+function initial(s){return (String(s||'?').trim()[0]||'?').toUpperCase()}
+function timeAgo(iso){const d=(Date.now()-new Date(iso).getTime())/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return new Date(iso).toLocaleDateString('en-US')}
+
+// ---- PIN lock (only used when requirePin is enabled in the dashboard) ----
+function sessionUnlocked(){try{return sessionStorage.getItem('ym_unlocked')==='yes';}catch(e){return false;}}
+function setUnlocked(){try{sessionStorage.setItem('ym_unlocked','yes');}catch(e){}}
+async function unlock(){
+  const pin=$('pinInput').value;$('pinErr').textContent='Checking…';
+  try{
+    const res=await fetch('/api/unlock?pin='+encodeURIComponent(pin));const d=await res.json();
+    if(d.ok){setUnlocked();$('lockScreen').classList.add('hide');$('pinInput').value='';$('pinErr').textContent='';boot();}
+    else{$('pinErr').textContent='Wrong password. Try again.';$('pinInput').value='';$('pinInput').focus();}
+  }catch(e){$('pinErr').textContent='Could not reach the server.';}
+}
+$('pinBtn').onclick=unlock;$('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')unlock()});
+$('lockBtn').onclick=()=>{try{sessionStorage.removeItem('ym_unlocked');}catch(e){}$('lockScreen').classList.remove('hide');$('pinInput').value='';$('pinInput').focus();toast('Page locked — enter the PIN again');};
+function applyLock(){
+  if(!CONFIG.requirePin||sessionUnlocked()){$('lockScreen').classList.add('hide');$('lockBtn').style.display=(isOwnerMode()&&CONFIG.requirePin)?'':'none';return true;}
+  $('lockScreen').classList.remove('hide');$('pinInput').focus();
+  $('lockBtn').style.display='none';return false;
+}
+function applyConfig(c){
+  if(!c)return;SITE=c;
+  if(c.domains&&c.domains.length)CONFIG.domains=c.domains;
+  CONFIG.requirePin=c.requirePin===true;CONFIG.portalMode=!!c.portalMode;
+  if(c.siteName){document.title='Inbox — '+c.siteName;[...document.querySelectorAll('.brand')].forEach(b=>b.textContent=c.siteName);const lh=document.querySelector('.lock-card h2');if(lh)lh.textContent=c.siteName;}
+  if(applyLock())boot();
+}
+async function loadConfig(){try{const r=await fetch('/api/config');if(r.ok)applyConfig(await r.json());}catch(e){}}
+
+function render(){
+  $('count').textContent=messages.length;
+  $('clearBtn').style.display=messages.length?'':'none';
+  if(!messages.length){$('empty').style.display='block';$('list').innerHTML='';return}
+  $('empty').style.display='none';
+  $('list').innerHTML=messages.map((m,i)=>{
+    const name=m.fromName||m.from||'?';
+    const prev=(m.text||m.html||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,110);
+    return `<li class="msg" data-i="${i}"><span class="avatar">${esc(initial(name))}</span><div class="msg-body"><div class="msg-top"><span class="from">${esc(name)}</span><span class="time">${timeAgo(m.date)}</span></div><div class="subject">${esc(m.subject||'(no subject)')}</div><div class="preview">${esc(prev)||'&nbsp;'}</div></div><button class="msg-del" data-key="${esc(m._key||'')}">Delete</button></li>`;
+  }).join('');
+  [...document.querySelectorAll('.msg')].forEach(el=>{el.onclick=e=>{if(e.target.closest('.msg-del'))return;openMsg(+el.dataset.i);};});
+  [...document.querySelectorAll('.msg-del')].forEach(btn=>{btn.onclick=e=>{e.stopPropagation();deleteMessage(btn.dataset.key);};});
+}
+async function fetchMessages(){
+  if(!currentAddress){render();return}
+  $('state').innerHTML='<span class="spin"></span>Checking messages…';
+  try{
+    const res=await fetch('/api/messages?address='+encodeURIComponent(currentAddress));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();messages=data.messages||[];render();
+    $('state').innerHTML='<span class="sdot"></span>Connected';
+  }catch(e){render();$('state').innerHTML='Could not connect to the server';}
+}
+async function deleteMessage(key, skipConfirm){
+  if(!skipConfirm && !confirm('Delete this message?')) return;
+  if(!currentAddress||!key) return;
+  try{await fetch('/api/delete?address='+encodeURIComponent(currentAddress)+'&key='+encodeURIComponent(key),{method:'DELETE'});messages=messages.filter(m=>m._key!==key);render();toast('Message deleted');}catch(e){toast('Could not delete message')}
+}
+async function clearAll(){
+  if(!currentAddress) return;
+  if(!confirm('Delete all messages in this inbox?')) return;
+  try{await fetch('/api/clear?address='+encodeURIComponent(currentAddress),{method:'DELETE'});messages=[];render();toast('All messages deleted');}catch(e){toast('Could not delete messages')}
+}
+function openMsg(i){
+  const m=messages[i];if(!m)return;currentMsgKey=m._key||null;
+  const name=m.fromName||m.from||'?';
+  $('mSubject').textContent=m.subject||'(no subject)';$('mFrom').textContent=name;$('mMail').textContent=m.from||'';
+  $('mDate').textContent=new Date(m.date).toLocaleString('en-US');$('mAvatar').textContent=initial(name);
+  if(m.html){
+    $('mBody').innerHTML='<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" id="mailFrame"></iframe>';
+    const f=$('mailFrame');f.srcdoc='<base target="_blank"><style>body{font-family:Inter,Arial,sans-serif;color:#1a1a1a;padding:18px;margin:0;line-height:1.6}a{color:#315fff;font-weight:600;word-break:break-all}</style>'+linkifyHtml(m.html);
+    f.onload=()=>{try{f.style.height=Math.min(f.contentWindow.document.body.scrollHeight+42,2200)+'px'}catch(e){f.style.height='520px'}}
+  }else{$('mBody').innerHTML='<div class="text-mail">'+linkifyText(m.text||'(empty message)')+'</div>'}
+  $('overlay').classList.add('open');
+}
+$('mDeleteBtn').onclick=async()=>{if(!currentMsgKey)return;await deleteMessage(currentMsgKey,false);$('overlay').classList.remove('open');};
+$('closeBtn').onclick=()=>$('overlay').classList.remove('open');
+$('overlay').onclick=e=>{if(e.target.id==='overlay')$('overlay').classList.remove('open')};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('overlay').classList.remove('open')});
+$('clearBtn').onclick=clearAll;
+$('copyBtn').onclick=async()=>{if(!currentAddress)return;try{await navigator.clipboard.writeText(currentAddress);toast('Address copied');}catch(e){toast('Copy failed');}};
+$('refreshBtn').onclick=()=>startRealtime();
+
+// ---- Realtime inbox (long-polling) ----
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let pollToken=0, primed=false;
+const seenIds=new Set();
+let _ac=null, _origTitle=document.title;
+function beep(){try{_ac=_ac||new (window.AudioContext||window.webkitAudioContext)();const o=_ac.createOscillator(),g=_ac.createGain();o.connect(g);g.connect(_ac.destination);o.type='sine';o.frequency.setValueAtTime(880,_ac.currentTime);o.frequency.exponentialRampToValueAtTime(1320,_ac.currentTime+.15);g.gain.setValueAtTime(.0001,_ac.currentTime);g.gain.exponentialRampToValueAtTime(.16,_ac.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,_ac.currentTime+.4);o.start();o.stop(_ac.currentTime+.42);}catch(e){}}
+function ensureNotifyPermission(){try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
+function flashInbox(){const c=$('count');if(c&&c.animate){c.animate([{transform:'scale(1)'},{transform:'scale(1.3)'},{transform:'scale(1)'}],{duration:600});}}
+function notifyNew(fresh){
+  beep();flashInbox();
+  const first=fresh[0];const name=first?(first.fromName||first.from||''):'';const subj=first?(first.subject||'(no subject)'):'';
+  const label=fresh.length+(fresh.length===1?' new email':' new emails');
+  toast(label+(subj?' — '+subj:''));
+  if(document.hidden)document.title='('+fresh.length+') '+label;
+  try{if(window.Notification&&Notification.permission==='granted'){const n=new Notification(((SITE&&SITE.siteName)||'Temp Mail')+' — '+label,{body:name+(subj?'\n'+subj:''),icon:((SITE&&SITE.logoUrl)||'/logo.png')});n.onclick=()=>{window.focus();n.close();};}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)document.title=_origTitle;});
+function handleIncoming(list,announce){
+  const arr=Array.isArray(list)?list:[];
+  const fresh=arr.filter(m=>m&&m.id&&!seenIds.has(m.id));
+  arr.forEach(m=>{if(m&&m.id)seenIds.add(m.id);});
+  messages=arr;render();
+  if(announce&&primed&&fresh.length)notifyNew(fresh);
+}
+async function pollLoop(myToken){
+  while(myToken===pollToken&&currentAddress){
+    try{
+      const since=messages.length;
+      const res=await fetch('/api/poll?address='+encodeURIComponent(currentAddress)+'&since='+since);
+      if(myToken!==pollToken)return;
+      if(res.ok){const d=await res.json();if(myToken!==pollToken)return;handleIncoming(d.messages,true);$('state').innerHTML='<span class="sdot"></span>Live';}
+      else{$('state').innerHTML='<span class="spin"></span>Reconnecting…';await sleep(1500);}
+    }catch(e){if(myToken!==pollToken)return;$('state').innerHTML='<span class="spin"></span>Reconnecting…';await sleep(1500);}
+  }
+}
+async function startRealtime(){
+  const myToken=++pollToken;primed=false;seenIds.clear();
+  if(!currentAddress){render();$('state').innerHTML='<span class="spin"></span>Waiting…';return;}
+  $('state').innerHTML='<span class="spin"></span>Preparing realtime…';
+  await fetchMessages();
+  if(myToken!==pollToken)return;
+  messages.forEach(m=>{if(m&&m.id)seenIds.add(m.id);});
+  primed=true;pollLoop(myToken);
+}
+
+// ---- Owner mode ----
+function isOwnerMode(){return localStorage.getItem('ym_owner')==='yes';}
+function applyOwnerUI(){const own=isOwnerMode();const d=$('dashLink');if(d)d.style.display=own?'':'none';const lb=$('lockBtn');if(lb)lb.style.display=(own&&CONFIG.requirePin&&sessionUnlocked())?'':'none';}
+(function initOwner(){const brand=document.querySelector('.brand');let clicks=0,timer=null;if(brand){brand.addEventListener('click',e=>{clicks++;clearTimeout(timer);timer=setTimeout(()=>clicks=0,1500);if(clicks>=5){e.preventDefault();clicks=0;if(isOwnerMode()){if(confirm('Exit owner mode?')){localStorage.removeItem('ym_owner');applyOwnerUI();toast('Owner mode off');}}else{const pw=prompt('Owner password:');if(pw!==null)fetch('/api/admin/verify?pw='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(d&&d.ok){localStorage.setItem('ym_owner','yes');applyOwnerUI();toast('Owner mode on');}else toast('Wrong owner password');}).catch(()=>toast('Owner verification failed'));}}});}applyOwnerUI();})();
+
+// ---- Boot: runs after unlock ----
+let booted=false;
+function boot(){
+  if(booted)return;booted=true;applyOwnerUI();
+  if(!currentAddress){$('noAddr').style.display='';$('hasAddr').style.display='none';return;}
+  $('noAddr').style.display='none';$('hasAddr').style.display='';
+  $('addr').textContent=currentAddress;
+  ensureNotifyPermission();startRealtime();
+}
+if(applyLock())boot();
+loadConfig();
+</script>
+</body>
+</html>

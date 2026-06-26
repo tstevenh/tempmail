@@ -1,0 +1,24 @@
+# --- secrets: never commit / never ship ---
+secrets/
+*.local.env
+.dev.vars
+.env
+
+# --- dependencies / build ---
+node_modules/
+.wrangler/
+dist/
+
+# --- local scratch / tooling ---
+.playwright-mcp/
+*.local.json
+sv_payload.json
+sv_result.json
+ideas_*.json
+multi*.json
+s_payload.json
+sg*.json
+
+# --- os ---
+.DS_Store
+*.log

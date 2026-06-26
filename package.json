@@ -1,0 +1,17 @@
+{
+  "name": "law-mail-permanent-mail",
+  "version": "2.0.0",
+  "description": "LAW MAIL",
+  "private": true,
+  "scripts": {
+    "start": "wrangler dev --port 5000",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "postal-mime": "^2.7.4"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17"
+  }
+}

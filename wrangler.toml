@@ -1,0 +1,44 @@
+# ====================================================================
+# LawMail — Cloudflare Worker backend + website
+# ====================================================================
+
+name = "lawmail"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+account_id = "0639df68815f32dbfe965f2a8d91e647"
+
+# Custom Domain: wrangler otomatis membuat DNS record + SSL saat deploy (mencegah error DNS NXDOMAIN).
+routes = [
+  { pattern = "domainmu.web.id", custom_domain = true },
+  { pattern = "www.ldomainmu.web.id", custom_domain = true }
+]
+
+[vars]
+# Bisa isi lebih dari satu domain, pisahkan dengan koma.
+# Semua domain harus aktif Email Routing/catch-all ke Worker di Cloudflare.
+MAIL_DOMAINS = "lawtmail.web.id"
+# Password owner untuk membuka dashboard (/dashboard) dan API admin.
+DASHBOARD_PASSWORD = "12345"
+# Logo website + sumber favicon.ico otomatis (di-serve oleh Worker di /favicon.ico).
+LOGO_URL = "https://i.imgur.com/XiiKJXd.png"
+# PUBLIC_SITE="off" => lawstoremail.web.id jadi BACKEND temp mail saja.
+# Set "on" jika ingin website publik kembali tampil di domain ini.
+PUBLIC_SITE = "on"
+# SEO: canonical / Open Graph / sitemap base URL. MUST be your real https domain (no trailing slash).
+SITE_URL = "https://example.com"
+# Google AdSense publisher id WITHOUT the "ca-" prefix, e.g. "pub-1234567890123456".
+# Leave empty until approved — ad units and ads.txt stay inactive while blank.
+ADSENSE_PUB_ID = ""
+
+# Auto Cleanup terjadwal: jalan tiap 6 jam (atur di dashboard → Auto Cleanup).
+[triggers]
+crons = ["0 */6 * * *"]
+
+[[kv_namespaces]]
+binding = "TEMPMAIL_KV"
+id = "1cd5671ffe3a490caf9d4797568f334d"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true

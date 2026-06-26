@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Temp Mail — Admin Dashboard</title>
+<meta name="description" content="Temp Mail admin dashboard: stats, domains, security, bot integrations, appearance, and auto cleanup." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#5046E5" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#15171a;--paper:#ffffff;--gray:#646a73;--soft:#9aa0a8;--hair:#ececed;--wash:#f4f4f5;
+  --border:#e7e7ea;--border2:#d7d7db;
+  /* legacy aliases */
+  --bg:#ffffff;--panel:#fafafa;--panel2:#f2f2f4;--line:#e7e7ea;--line2:#ececed;--text:#15171a;
+  --violet:#15171a;--pink:#15171a;--blue:#15171a;--cyan:#15171a;--ok:#16a34a;--danger:#dc2626;
+  --accent:#5046E5;--accent-hover:#3F37C9;--accent-weak:#EEEDFC;--accent-ink:#3F37C9;
+  --shadow-sm:0 1px 2px rgba(30,32,48,.07);
+}
+html,body{min-height:100%}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--paper);overflow-x:hidden;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{filter:none}
+::selection{background:#15171a;color:#fff}
+
+/* ---- lock ---- */
+.lock{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:22px;background:rgba(11,11,11,.94);backdrop-filter:blur(3px)}
+.lock.hide{display:none}
+.lock-card{width:min(520px,100%);border:1px solid var(--border);background:var(--paper);padding:42px 34px;text-align:center;box-shadow:0 12px 34px rgba(20,22,28,.12)}
+.lock-logo{width:56px;height:56px;border:1px solid var(--border);object-fit:cover;margin:0 auto;display:block}
+.lock h1{font-family:Inter,sans-serif;font-weight:900;text-transform:uppercase;font-size:30px;letter-spacing:-.02em;margin:18px 0 8px}
+.lock p{color:var(--gray);font-size:14px}
+.pin-row{display:flex;margin-top:24px;border:1px solid var(--border)}
+.pin-row input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);padding:15px 18px;font:600 16px "IBM Plex Mono",monospace;letter-spacing:.12em;text-align:center;border-right:1px solid var(--border)}
+.pin-row .btn.primary{border:0}
+.err{min-height:22px;color:#dc2626;font:600 12px "IBM Plex Mono",monospace;margin-top:14px;text-transform:uppercase;letter-spacing:.08em}
+
+/* ---- shell + sidebar ---- */
+.shell{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.side{border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow:auto;background:var(--paper)}
+.brand{display:flex;align-items:center;gap:12px;font-family:Inter,sans-serif;font-weight:900;font-size:26px;letter-spacing:-.02em;text-transform:uppercase;line-height:.9;padding:4px 8px 20px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.brand img{width:40px;height:40px;border:1px solid var(--border);object-fit:cover}
+.navi{display:flex;align-items:center;gap:12px;padding:11px 12px;color:var(--gray);font:700 12.5px "IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:1.5px solid transparent;transition:.14s}
+.navi:hover{color:var(--ink);background:var(--wash)}
+.navi.active{background:var(--accent);color:#fff;border-color:transparent}
+.navi .i{display:grid;place-items:center;width:26px;height:26px;border:1.5px solid currentColor;font:700 10px "IBM Plex Mono",monospace;letter-spacing:0;flex-shrink:0}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ---- main ---- */
+.main{padding:28px 34px 70px;max-width:1180px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:18px}
+.topbar h2{font-family:Inter,sans-serif;font-weight:900;font-size:clamp(24px,3vw,36px);letter-spacing:-.02em;text-transform:uppercase}
+.topbar p{color:var(--gray);font:500 12.5px "IBM Plex Mono",monospace;margin-top:5px;letter-spacing:.04em}
+
+/* ---- buttons ---- */
+.btn{cursor:pointer;border:1px solid var(--border);background:var(--paper);color:var(--ink);font:700 12px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:11px 15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.14s;text-decoration:none}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary:hover{background:var(--accent-hover);color:#fff}
+.btn.danger{border-color:var(--ink);color:var(--ink);background:var(--paper)}
+.btn.danger:hover{background:var(--ink);color:var(--paper)}
+.btn.sm{padding:8px 12px;font-size:11px}
+.btn.danger-sm{cursor:pointer;border:1px solid var(--border);background:var(--paper);color:var(--ink);font:700 11px "IBM Plex Mono",monospace;padding:7px 11px;text-transform:uppercase}
+.btn.danger-sm:hover{background:var(--ink);color:var(--paper)}
+
+/* ---- stats ---- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);margin-bottom:24px}
+.stat{position:relative;background:var(--paper);border-right:1px solid var(--border);padding:20px}
+.stat:last-child{border-right:0}
+.stat .k{font:700 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--gray)}
+.stat .v{font-family:Inter,sans-serif;font-weight:900;font-size:34px;margin-top:8px;line-height:1}
+.stat .s{font:500 11.5px "IBM Plex Mono",monospace;color:var(--soft);margin-top:6px}
+.stat .ic{display:none}
+
+/* ---- cards ---- */
+.card{position:relative;background:var(--paper);border:1px solid var(--border);margin-bottom:20px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-head h3{font-family:Inter,sans-serif;font-weight:900;font-size:18px;text-transform:uppercase;letter-spacing:-.01em}
+.card-head .sub{font:500 12px "IBM Plex Mono",monospace;color:var(--gray);margin-top:4px;text-transform:none;letter-spacing:0}
+.card-body{padding:20px}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:20px}
+.grid2 .card{margin-bottom:0}
+
+/* ---- bars / rank ---- */
+.bars{display:flex;align-items:flex-end;gap:7px;height:200px;padding-top:10px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;height:100%;justify-content:flex-end}
+.bar{width:100%;max-width:34px;background:var(--accent);min-height:3px;position:relative;border:0;border-radius:4px 4px 0 0}
+.bar:hover{background:var(--paper)}
+.bar:hover::after{content:attr(data-v);position:absolute;left:50%;top:-24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:3px 7px;font:700 11px "IBM Plex Mono",monospace;white-space:nowrap}
+.bar-lbl{font:500 10px "IBM Plex Mono",monospace;color:var(--soft)}
+.rank{list-style:none;display:flex;flex-direction:column;gap:13px}
+.rank li{display:flex;flex-direction:column;gap:6px}
+.rank .top{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.rank .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .ct{color:var(--gray);font:700 12px "IBM Plex Mono",monospace}
+.track{height:8px;background:var(--wash);border:1px solid var(--ink);overflow:hidden}
+.fill{height:100%;background:var(--accent)}
+
+/* ---- search + tables ---- */
+.search{flex:1;min-width:160px;background:var(--paper);border:1px solid var(--border);color:var(--ink);padding:10px 14px;font:600 13px "IBM Plex Mono",monospace;outline:none}
+.search:focus{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.tbl-wrap{overflow:auto;max-height:520px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;position:sticky;top:0;background:var(--ink);color:var(--paper);font:700 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;padding:12px 15px;z-index:2}
+td{padding:12px 15px;border-bottom:1.5px solid var(--hair);vertical-align:middle}
+tr:hover td{background:var(--wash)}
+.to-addr{font-weight:700;color:var(--ink);white-space:nowrap}
+.from-cell b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.from-cell small{color:var(--soft);font-family:"IBM Plex Mono",monospace}
+.subj{color:var(--gray);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.when{color:var(--soft);white-space:nowrap;font:500 12px "IBM Plex Mono",monospace}
+.avatar{width:36px;height:36px;display:grid;place-items:center;flex-shrink:0;font:700 14px Inter,sans-serif;border-radius:9px;background:var(--accent-weak)!important;color:var(--accent-ink)!important;border:1px solid rgba(80,70,229,.16)}
+.cellflex{display:flex;align-items:center;gap:10px;min-width:0}
+
+/* ---- empty / state ---- */
+.empty{text-align:center;color:var(--gray);padding:52px 22px}
+.empty-icon{width:68px;height:68px;border:1.5px dashed var(--border2);display:grid;place-items:center;margin:0 auto 14px;font:900 22px Inter,sans-serif;color:var(--ink)}
+.empty-icon img{display:none}
+.empty h4{font-family:Inter,sans-serif;font-weight:900;font-size:16px;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
+.state{font:500 12px "IBM Plex Mono",monospace;color:var(--gray);text-transform:uppercase;letter-spacing:.06em}
+.spin{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--hair);border-top-color:var(--ink);animation:rot 1s linear infinite;margin-right:7px;vertical-align:-2px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ink);margin-right:7px}
+
+/* ---- toast ---- */
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(150%);opacity:1;pointer-events:none;z-index:120;background:var(--ink);color:var(--paper);border:1px solid var(--border);padding:13px 20px;font:600 13px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;transition:transform .22s}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ---- modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(11,11,11,.55);backdrop-filter:blur(4px);z-index:50;display:none;align-items:center;justify-content:center;padding:18px}
+.overlay.open{display:flex}
+.modal{width:min(740px,100%);max-height:88vh;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--border);box-shadow:16px 16px 0 var(--ink);overflow:hidden}
+.modal-head{padding:20px;border-bottom:1px solid var(--border)}
+.modal-title{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.modal-title h3{font-family:Inter,sans-serif;font-weight:900;font-size:20px;line-height:1.2}
+.close{width:40px;height:40px;border:1px solid var(--border);background:var(--paper);color:var(--ink);cursor:pointer;font-size:20px;line-height:1;transition:.14s}
+.close:hover{background:var(--ink);color:var(--paper)}
+.meta{display:flex;align-items:center;gap:12px;margin-top:14px;color:var(--gray)}
+.meta small{display:block;color:var(--soft);font:500 12px "IBM Plex Mono",monospace}
+.meta b{font-weight:700}
+.mail-body{overflow:auto;background:var(--paper)}
+.mail-body iframe{width:100%;border:0;background:#fff}
+.text-mail{white-space:pre-wrap;padding:20px;color:var(--ink);line-height:1.7}
+
+/* ---- forms ---- */
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.field label{font:700 11px "IBM Plex Mono",monospace;color:var(--ink);text-transform:uppercase;letter-spacing:.08em}
+.field .hh{font:500 12px "IBM Plex Mono",monospace;color:var(--gray);text-transform:none;letter-spacing:0;margin-top:-2px}
+.inp,.sel,textarea.inp{width:100%;background:var(--paper);border:1px solid var(--border);color:var(--ink);padding:12px 14px;font:600 14px "IBM Plex Mono",monospace;outline:none}
+.inp:focus,.sel:focus,textarea.inp:focus{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.sel option{background:#fff;color:#15171a}
+textarea.inp{min-height:72px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ---- switches / toggles ---- */
+.switch{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px 15px;border:1px solid var(--border);background:var(--paper);margin-bottom:13px}
+.switch .t{font-weight:700;font-size:14px}
+.switch .d{font:500 12px "IBM Plex Mono",monospace;color:var(--gray)}
+.tg{position:relative;width:48px;height:26px;background:var(--paper);cursor:pointer;flex-shrink:0;transition:.18s;border:1px solid var(--border)}
+.tg::after{content:"";position:absolute;width:18px;height:18px;background:var(--ink);top:2.5px;left:3px;transition:.18s}
+.tg.on{background:var(--accent);border-color:var(--accent)}
+.tg.on::after{left:25px;background:var(--paper)}
+
+/* ---- lists / tags / chips ---- */
+.list-item{display:flex;align-items:center;gap:10px;padding:12px 13px;border:1px solid var(--border);background:var(--paper);margin-bottom:9px;flex-wrap:wrap}
+.list-item .grow{flex:1;min-width:120px;font-weight:700;font-size:13.5px;word-break:break-all}
+.list-item small{color:var(--gray);font-family:"IBM Plex Mono",monospace}
+.tag{display:inline-block;padding:3px 9px;border:1px solid var(--border);font:700 11px "IBM Plex Mono",monospace;background:var(--paper);color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--border);background:var(--paper);font:700 12px "IBM Plex Mono",monospace;margin:0 8px 8px 0}
+.code{font-family:"IBM Plex Mono",monospace;background:var(--wash);border:1px solid var(--border);padding:10px 13px;font-size:13px;word-break:break-all;color:var(--ink)}
+
+/* ---- tabs / traffic types ---- */
+.tab-pane{display:none}
+.tab-pane.show{display:block}
+.tcell{font:500 12.5px "IBM Plex Mono",monospace;white-space:nowrap}
+.tcell.type{font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.t-mail,.t-forward,.t-blocked,.t-banned,.t-ratelimit,.t-cleanup,.t-admin,.t-auth,.t-error,.t-visit{color:var(--ink)}
+.t-blocked,.t-banned,.t-ratelimit,.t-error{font-style:italic}
+
+/* ---- footer ---- */
+.footer{text-align:center;color:var(--paper);background:var(--ink);font:600 12px "IBM Plex Mono",monospace;letter-spacing:.2em;text-transform:uppercase;margin-top:28px;padding:24px}
+
+.menu-btn{display:none}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;width:260px;z-index:60;transform:translateX(-105%);transition:.25s;background:var(--paper)}
+  .side.open{transform:none}
+  .menu-btn{display:inline-flex}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat{border-bottom:1px solid var(--border)}
+  .grid2{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr}
+  .main{padding:24px 18px 60px}
+}
+@media(max-width:560px){.hide-sm{display:none}}
+
+</style>
+</head>
+<body>
+
+<div class="lock" id="lockScreen">
+  <div class="lock-card">
+    <img class="lock-logo" src="/favicon.svg" alt="Temp Mail" width="56" height="56" style="border:0;border-radius:14px" />
+    <h1>Temp Mail</h1>
+    <p>Owner-only area. Enter the dashboard password to manage the system.</p>
+    <div class="pin-row"><input id="pinInput" type="password" maxlength="64" placeholder="Dashboard password" autocomplete="off" /><button class="btn primary" id="pinBtn">Sign in</button></div>
+    <div class="err" id="pinErr"></div>
+  </div>
+</div>
+
+<div class="shell">
+  <aside class="side" id="side">
+    <div class="brand"><img src="/favicon.svg" alt="" width="28" height="28" style="border-radius:8px;box-shadow:var(--shadow-sm)" /> Temp Mail</div>
+    <div class="navi active" data-tab="overview"><span class="i">OV</span> Overview</div>
+    <div class="navi" data-tab="mail"><span class="i">ML</span> Mail</div>
+    <div class="navi" data-tab="domains"><span class="i">DM</span> Domains</div>
+    <div class="navi" data-tab="forward"><span class="i">FW</span> Auto Forward</div>
+    <div class="navi" data-tab="security"><span class="i">SC</span> Security</div>
+    <div class="navi" data-tab="integrations"><span class="i">BA</span> Bot &amp; API</div>
+    <div class="navi" data-tab="appearance"><span class="i">AP</span> Appearance</div>
+    <div class="navi" data-tab="access"><span class="i">AX</span> Access / Portal</div>
+    <div class="navi" data-tab="cleanup"><span class="i">CL</span> Auto Cleanup</div>
+    <div class="side-foot">
+      <a class="btn ghost" href="/">&larr; Open Website</a>
+      <button class="btn ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn ghost menu-btn" id="menuBtn">Menu</button>
+        <div><h2 id="pageTitle">Overview</h2><p id="pageSub">System stats &amp; activity overview.</p></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="state" id="state"><span class="spin"></span>Loading…</span>
+        <button class="btn ghost" id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-pane show" id="tab-overview">
+      <section class="stats">
+        <div class="stat"><div class="ic"></div><div class="k">Total Mail</div><div class="v" id="sTotal">0</div><div class="s">stored messages</div></div>
+        <div class="stat"><div class="ic"></div><div class="k">Addresses</div><div class="v" id="sAddr">0</div><div class="s">unique inboxes</div></div>
+        <div class="stat"><div class="ic"></div><div class="k">Domains</div><div class="v" id="sDomain">0</div><div class="s">active domains</div></div>
+        <div class="stat"><div class="ic"></div><div class="k">Mail Today</div><div class="v" id="sToday">0</div><div class="s">last 24 hours</div></div>
+      </section>
+      <section class="grid2">
+        <div class="card"><div class="card-head"><h3>Incoming Mail — Last 14 Days</h3><span class="state">per day</span></div><div class="card-body"><div class="bars" id="bars"></div></div></div>
+        <div class="card"><div class="card-head"><h3>Top Addresses</h3></div><div class="card-body"><ul class="rank" id="rank"></ul></div></div>
+      </section>
+      <div class="card"><div class="card-head"><div><h3>Live Traffic</h3><div class="sub">IP visits, incoming email, forwards, and security events in real time.</div></div><button class="btn danger-sm" id="clearTrafficBtn">Clear Log</button></div>
+        <div class="tbl-wrap" style="max-height:330px"><table><thead><tr><th>Time</th><th>Type</th><th>Detail</th></tr></thead><tbody id="trafficBody"></tbody></table><div class="empty" id="trafficEmpty" style="display:none"><div class="empty-icon">!</div><h4>No activity yet</h4></div></div>
+      </div>
+    </div>
+
+    <!-- MAIL -->
+    <div class="tab-pane" id="tab-mail">
+      <div class="card">
+        <div class="card-head"><div><h3>Registered Mail <span class="tag" id="listCount">0</span></h3></div>
+          <div style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end;flex-wrap:wrap"><input class="search" id="search" placeholder="Search address, sender, subject…" /><button class="btn" id="testInboundBtn">Send Test Email</button><button class="btn danger" id="clearBtn">Clear Database</button></div>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Inbox</th><th>Sender</th><th class="hide-sm">Subject</th><th class="hide-sm">Time</th><th></th></tr></thead><tbody id="tbody"></tbody></table>
+          <div class="empty" id="empty" style="display:none"><div class="empty-icon">0</div><h4>No mail yet</h4></div></div>
+      </div>
+    </div>
+
+    <!-- DOMAINS -->
+    <div class="tab-pane" id="tab-domains">
+      <div class="card"><div class="card-head"><div><h3>Multi-Domain &amp; Subdomain</h3><div class="sub">Add extra domains/subdomains. Make sure Email Routing + catch-all to this Worker is enabled in Cloudflare.</div></div></div>
+        <div class="card-body">
+          <div class="field"><label>Domains from config (wrangler.toml)</label><div id="envDomains"></div></div>
+          <div class="field"><label>Extra domains (managed here)</label><div id="extraDomains"></div>
+            <div style="display:flex;gap:10px;margin-top:6px"><input class="inp" id="newDomain" placeholder="e.g. mail.yourdomain.com" /><button class="btn primary" id="addDomainBtn">Add</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO FORWARD -->
+    <div class="tab-pane" id="tab-forward">
+      <div class="card"><div class="card-head"><div><h3>Auto-Forward to Gmail &amp; Outlook</h3><div class="sub">Forward incoming email automatically. Destinations MUST be verified first in Cloudflare → Email Routing → Destination addresses.</div></div></div>
+        <div class="card-body">
+          <div class="switch"><div><div class="t">Enable Auto-Forward</div><div class="d">All emails matching a rule are forwarded.</div></div><div class="tg" id="fwdEnabled"></div></div>
+          <div class="field"><label>Forward Rules</label><div id="fwdRules"></div></div>
+          <div class="row"><div class="field"><label>Match</label><select class="sel" id="fwdMatch"><option value="all">All emails</option><option value="domain">Specific domain</option><option value="address">Specific address</option></select></div><div class="field"><label>Value (domain / address)</label><input class="inp" id="fwdValue" placeholder="leave empty for 'All'" /></div></div>
+          <div class="field"><label>Forward to (Gmail/Outlook)</label><input class="inp" id="fwdTo" placeholder="name@gmail.com" /></div>
+          <button class="btn primary" id="addFwdBtn">+ Add Rule</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="tab-pane" id="tab-security">
+      <div class="card"><div class="card-head"><h3>Rate Limit</h3></div><div class="card-body">
+        <div class="switch"><div><div class="t">Enable Rate Limit</div><div class="d">Limit the number of requests per IP.</div></div><div class="tg" id="rlEnabled"></div></div>
+        <div class="row"><div class="field"><label>Max requests</label><input class="inp" id="rlMax" type="number" min="10" /></div><div class="field"><label>Window (seconds, min 60)</label><input class="inp" id="rlWindow" type="number" min="60" /></div></div>
+      </div></div>
+      <div class="card"><div class="card-head"><h3>Banned IP</h3></div><div class="card-body">
+        <div id="bannedList"></div>
+        <div style="display:flex;gap:10px;margin-top:6px"><input class="inp" id="newIp" placeholder="e.g. 1.2.3.4" /><button class="btn primary" id="addIpBtn">Block IP</button></div>
+      </div></div>
+      <div class="card"><div class="card-head"><h3>Block Sender</h3></div><div class="card-body">
+        <div id="blockedList"></div>
+        <div style="display:flex;gap:10px;margin-top:6px"><input class="inp" id="newSender" placeholder="spam@x.com or @spamdomain.com" /><button class="btn primary" id="addSenderBtn">Block Sender</button></div>
+      </div></div>
+    </div>
+
+    <!-- INTEGRATIONS -->
+    <div class="tab-pane" id="tab-integrations">
+      <div class="card"><div class="card-head"><div><h3>API Key</h3><div class="sub">For WhatsApp / Telegram bots to pull OTP via REST. Endpoint: <span class="code" style="padding:2px 6px">/api/v1/latest?address=...&amp;apikey=...</span></div></div></div>
+        <div class="card-body"><div id="apiKeyList"></div>
+          <div style="display:flex;gap:10px;margin-top:6px"><input class="inp" id="newKeyLabel" placeholder="key label, e.g. telegram-bot" /><button class="btn primary" id="addKeyBtn">+ Generate API Key</button></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>Webhook</h3><div class="sub">Every incoming email is sent as a JSON POST to this URL (for your bot).</div></div></div>
+        <div class="card-body"><div id="webhookList"></div>
+          <div class="row"><div class="field"><label>Label</label><input class="inp" id="whLabel" placeholder="wa-bot" /></div><div class="field"><label>Webhook URL</label><input class="inp" id="whUrl" placeholder="https://..." /></div></div>
+          <button class="btn primary" id="addWhBtn">+ Add Webhook</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>Telegram Bot</h3><div class="sub">Instant notification to a Telegram chat when email arrives.</div></div></div>
+        <div class="card-body">
+          <div class="switch"><div><div class="t">Enable Telegram</div></div><div class="tg" id="tgEnabled"></div></div>
+          <div class="row"><div class="field"><label>Bot Token</label><input class="inp" id="tgToken" placeholder="123456:ABC-DEF..." /></div><div class="field"><label>Chat ID</label><input class="inp" id="tgChat" placeholder="-100123... or 123456" /></div></div>
+          <button class="btn ghost" id="testNotifyBtn">Send Test Notification</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="tab-pane" id="tab-appearance">
+      <div class="card"><div class="card-head"><div><h3>Website Appearance</h3><div class="sub">Change the name, logo, colors, and language. Applies to the main page immediately.</div></div></div>
+        <div class="card-body">
+          <div class="row"><div class="field"><label>Website Name</label><input class="inp" id="apName" /></div><div class="field"><label>Tagline</label><input class="inp" id="apTagline" /></div></div>
+          <div class="field"><label>Logo URL</label><input class="inp" id="apLogo" placeholder="https://...png" /><span class="hh">Used for the logo &amp; favicon.</span></div>
+          <div class="row"><div class="field"><label>Primary Color</label><input class="inp" id="apPrimary" type="text" placeholder="#0b0b0b" /></div><div class="field"><label>Accent Color</label><input class="inp" id="apAccent" type="text" placeholder="#0b0b0b" /></div></div>
+          <div class="field"><label>Language</label><select class="sel" id="apLang"><option value="en">English</option><option value="id">Indonesian</option></select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCESS -->
+    <div class="tab-pane" id="tab-access">
+      <div class="card"><div class="card-head"><div><h3>Portal / Private Access &amp; Lock</h3><div class="sub">Lock the website with a PIN/password. Good for a private / members-only site.</div></div></div>
+        <div class="card-body">
+          <div class="switch"><div><div class="t">Require PIN (lock access)</div><div class="d">Visitors must enter a PIN to open the site.</div></div><div class="tg" id="acRequire"></div></div>
+          <div class="switch"><div><div class="t">Portal / Private Mode</div><div class="d">Show as private, members-only access.</div></div><div class="tg" id="acPortal"></div></div>
+          <div class="field"><label>Website PIN / Password</label><input class="inp" id="acPin" placeholder="website password" /><span class="hh">Used by visitors to open the main site (not the dashboard password).</span></div>
+          <div class="field"><label>Portal Note</label><input class="inp" id="acNote" placeholder="Private access — members only." /></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="tab-pane" id="tab-cleanup">
+      <div class="card"><div class="card-head"><div><h3>Auto Cleanup</h3><div class="sub">Delete old emails automatically (scheduled via cron) to keep the database light.</div></div></div>
+        <div class="card-body">
+          <div class="switch"><div><div class="t">Enable Auto Cleanup</div><div class="d">Emails older than X days are deleted automatically.</div></div><div class="tg" id="clEnabled"></div></div>
+          <div class="row"><div class="field"><label>Delete emails older than (days)</label><input class="inp" id="clDays" type="number" min="1" /></div><div class="field"><label>Max messages per inbox</label><input class="inp" id="clMax" type="number" min="10" /></div></div>
+          <button class="btn ghost" id="runCleanupBtn">Run Cleanup Now</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer">Temp Mail · Admin</p>
+  </main>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal"><div class="modal-head"><div class="modal-title"><h3 id="mSubject">Subject</h3><button class="close" id="closeBtn">&times;</button></div><div class="meta"><span class="avatar" id="mAvatar">T</span><div><b id="mFrom">Sender</b><small id="mMail"></small></div><small id="mTo" style="margin-left:auto"></small></div></div><div class="mail-body" id="mBody"></div></div></div>
+<div class="toast" id="toast">OK</div>
+
+<script>
+const CONFIG = { domains: __MAIL_DOMAINS__ };
+// API base: empty when this page is served by the Worker (same-origin),
+// or an absolute Worker URL if the dashboard is hosted elsewhere (cross-origin).
+const API_BASE = (function(){var b="__API_BASE__";return /^https?:\/\//.test(b)?b.replace(/\/+$/,''):'';})();
+const $ = id => document.getElementById(id);
+let PW = sessionStorage.getItem('ym_dash_pw') || '';
+let all=[], filtered=[], settings=null, saveTimer=null;
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function initial(s){return (String(s||'?').trim()[0]||'?').toUpperCase()}
+function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout($('toast')._t);$('toast')._t=setTimeout(()=>$('toast').classList.remove('show'),2200)}
+function fmtDate(iso){try{return new Date(iso).toLocaleString('en-US',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+function fmtTime(iso){try{return new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return ''}}
+function normalizeUrl(u){u=String(u||'').trim();if(!/^https?:\/\//i.test(u))u='https://'+u;return u}
+function linkifyText(t){const e=esc(t||'');const re=/((?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s<]*)?)/gi;return e.replace(re,raw=>{const c=raw.replace(/[),.;!?]+$/,'');const tl=raw.slice(c.length);return '<a href="'+esc(normalizeUrl(c))+'" target="_blank" rel="noopener" style="color:var(--ink);font-weight:700;text-decoration:underline">'+c+'</a>'+tl})}
+function api(path,opt){return fetch(API_BASE+path+(path.includes('?')?'&':'?')+'pw='+encodeURIComponent(PW),opt)}
+
+// ---- Tabs ----
+const titles={overview:['Overview','System stats & activity overview.'],mail:['Mail','All email received into the database.'],domains:['Domains','Manage multi-domain & subdomain.'],forward:['Auto Forward','Forward email automatically to Gmail/Outlook.'],security:['Security','Rate limit, banned IP, and blocked senders.'],integrations:['Bot & API','Webhooks, API keys, and Telegram bot.'],appearance:['Appearance','Name, logo, colors, and language.'],access:['Access / Portal','Lock website access with a PIN.'],cleanup:['Auto Cleanup','Delete old emails automatically.']};
+function showTab(t){document.querySelectorAll('.navi').forEach(n=>n.classList.toggle('active',n.dataset.tab===t));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('show',p.id==='tab-'+t));$('pageTitle').textContent=titles[t][0];$('pageSub').textContent=titles[t][1];$('side').classList.remove('open');}
+document.querySelectorAll('.navi').forEach(n=>n.onclick=()=>showTab(n.dataset.tab));
+$('menuBtn').onclick=()=>$('side').classList.toggle('open');
+
+// ---- Auth ----
+async function tryUnlock(pw){let res;try{res=await fetch(API_BASE+'/api/admin/messages?pw='+encodeURIComponent(pw));}catch(e){return 'network';}if(res.status===401)return 'bad-password';if(!res.ok)return 'network';let d;try{d=await res.json();}catch(e){return 'network';}if(d&&d.ok!==false){PW=pw;sessionStorage.setItem('ym_dash_pw',pw);$('lockScreen').classList.add('hide');ingest(d.messages||[]);await loadSettings();loadTraffic();return 'ok';}return 'bad-password';}
+async function unlock(){const pw=$('pinInput').value.trim();if(!pw){$('pinErr').textContent='Enter the dashboard password.';return;}$('pinErr').textContent='Checking…';const r=await tryUnlock(pw);if(r==='ok')$('pinErr').textContent='';else if(r==='bad-password'){$('pinErr').textContent='Wrong password.';$('pinInput').value='';$('pinInput').focus();}else $('pinErr').textContent='Could not connect to the server (Worker).';}
+$('pinBtn').onclick=unlock;$('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')unlock()});
+$('logoutBtn').onclick=()=>{sessionStorage.removeItem('ym_dash_pw');PW='';$('lockScreen').classList.remove('hide');$('pinInput').value='';$('pinInput').focus()};
+
+// ---- Load mail ----
+async function load(){if(!PW)return;$('state').innerHTML='<span class="spin"></span>Loading…';try{const res=await fetch(API_BASE+'/api/admin/messages?pw='+encodeURIComponent(PW));if(res.status===401){sessionStorage.removeItem('ym_dash_pw');PW='';$('lockScreen').classList.remove('hide');return;}const d=await res.json();ingest(d.messages||[]);loadTraffic();}catch(e){$('state').innerHTML='<span class="dot" style="background:#ff6b8a"></span>Failed to load';}}
+function ingest(list){all=list;$('state').innerHTML='<span class="dot"></span>Connected';computeStats();drawChart();drawRank();applyFilter();}
+function computeStats(){const addrs=new Set(),doms=new Set();let today=0;const now=Date.now();all.forEach(m=>{if(m.to){addrs.add(m.to);const d=m.to.split('@')[1];if(d)doms.add(d);}if(now-new Date(m.date).getTime()<86400000)today++;});$('sTotal').textContent=all.length;$('sAddr').textContent=addrs.size;$('sDomain').textContent=Math.max(doms.size,CONFIG.domains.length);$('sToday').textContent=today;}
+function drawChart(){const days=14,buckets=[],now=new Date();now.setHours(0,0,0,0);for(let i=days-1;i>=0;i--){const d=new Date(now.getTime()-i*86400000);buckets.push({d,label:d.toLocaleDateString('en-US',{day:'2-digit',month:'2-digit'}),count:0});}all.forEach(m=>{const t=new Date(m.date);t.setHours(0,0,0,0);const b=buckets.find(x=>x.d.getTime()===t.getTime());if(b)b.count++;});const max=Math.max(1,...buckets.map(b=>b.count));$('bars').innerHTML=buckets.map(b=>{const h=Math.round((b.count/max)*100);return '<div class="bar-col"><div class="bar" data-v="'+b.count+' mail" style="height:'+(b.count?Math.max(h,4):2)+'%"></div><div class="bar-lbl">'+b.label+'</div></div>';}).join('');}
+function drawRank(){const map={};all.forEach(m=>{if(m.to)map[m.to]=(map[m.to]||0)+1;});const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);const max=Math.max(1,...arr.map(a=>a[1]));if(!arr.length){$('rank').innerHTML='<li style="color:var(--gray);font-size:13px">No addresses yet.</li>';return;}$('rank').innerHTML=arr.map(([a,c])=>'<li><div class="top"><span class="nm">'+esc(a)+'</span><span class="ct">'+c+'</span></div><div class="track"><div class="fill" style="width:'+Math.round((c/max)*100)+'%"></div></div></li>').join('');}
+function applyFilter(){const q=$('search').value.trim().toLowerCase();filtered=!q?all.slice():all.filter(m=>((m.to||'').toLowerCase().includes(q)||(m.from||'').toLowerCase().includes(q)||(m.fromName||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)));renderTable();}
+$('search').addEventListener('input',applyFilter);
+function renderTable(){$('listCount').textContent=filtered.length;if(!filtered.length){$('empty').style.display='block';$('tbody').innerHTML='';return;}$('empty').style.display='none';$('tbody').innerHTML=filtered.map((m,i)=>{const name=m.fromName||m.from||'?';return '<tr data-i="'+i+'"><td><span class="to-addr">'+esc(m.to||'-')+'</span></td><td class="from-cell"><div class="cellflex"><span class="avatar">'+esc(initial(name))+'</span><div style="min-width:0"><b>'+esc(name)+'</b><small>'+esc(m.from||'')+'</small></div></div></td><td class="hide-sm"><div class="subj">'+esc(m.subject||'(no subject)')+'</div></td><td class="hide-sm"><span class="when">'+fmtDate(m.date)+'</span></td><td style="text-align:right;white-space:nowrap"><button class="btn ghost sm view-btn">View</button> <button class="btn danger-sm del-btn" data-key="'+esc(m._key||'')+'">Delete</button></td></tr>';}).join('');[...document.querySelectorAll('#tbody tr')].forEach(tr=>{const i=+tr.dataset.i;tr.querySelector('.view-btn').onclick=()=>openMsg(i);tr.querySelector('.del-btn').onclick=e=>{e.stopPropagation();delMsg(tr.querySelector('.del-btn').dataset.key);};});}
+async function delMsg(key){if(!key||!confirm('Delete this message?'))return;try{const r=await api('/api/admin/delete?key='+encodeURIComponent(key),{method:'DELETE'});const d=await r.json();if(d.ok){all=all.filter(m=>m._key!==key);computeStats();drawChart();drawRank();applyFilter();toast('Message deleted');}}catch(e){toast('Failed');}}
+async function clearDb(){if(!all.length){toast('Database is empty');return;}if(!confirm('Delete ALL mail ('+all.length+' messages)?'))return;if(!confirm('Confirm once more — this is permanent.'))return;try{const r=await api('/api/admin/clear',{method:'DELETE'});const d=await r.json();if(d.ok){all=[];computeStats();drawChart();drawRank();applyFilter();toast('Database cleared');}}catch(e){toast('Failed');}}
+$('clearBtn').onclick=clearDb;$('refreshBtn').onclick=()=>{load();loadSettings();};
+$('testInboundBtn').onclick=async()=>{const def=CONFIG.domains[0]?('test@'+CONFIG.domains[0]):'';const address=prompt('Send a test email to which address? (must end with one of your domains)',def);if(!address)return;try{const r=await api('/api/admin/test-inbound',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({address})});const d=await r.json();if(d.ok){toast('Test email sent to '+d.address);load();}else toast(d.error||'Failed');}catch(e){toast('Failed');}};
+
+function openMsg(i){const m=filtered[i];if(!m)return;const name=m.fromName||m.from||'?';$('mSubject').textContent=m.subject||'(no subject)';$('mFrom').textContent=name;$('mMail').textContent=m.from||'';$('mTo').textContent='→ '+(m.to||'');$('mAvatar').textContent=initial(name);if(m.html){$('mBody').innerHTML='<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" id="mailFrame"></iframe>';const f=$('mailFrame');f.srcdoc='<base target="_blank"><style>body{font-family:Inter,Arial,sans-serif;color:#1a1a1a;padding:18px;margin:0;line-height:1.6}a{color:#315fff;font-weight:700;word-break:break-all}</style>'+m.html;f.onload=()=>{try{f.style.height=Math.min(f.contentWindow.document.body.scrollHeight+42,2000)+'px'}catch(e){f.style.height='480px'}};}else{$('mBody').innerHTML='<div class="text-mail">'+linkifyText(m.text||'(empty message)')+'</div>';}$('overlay').classList.add('open');}
+$('closeBtn').onclick=()=>$('overlay').classList.remove('open');$('overlay').onclick=e=>{if(e.target.id==='overlay')$('overlay').classList.remove('open')};document.addEventListener('keydown',e=>{if(e.key==='Escape')$('overlay').classList.remove('open')});
+
+// ---- Traffic ----
+async function loadTraffic(){if(!PW)return;try{const r=await api('/api/admin/traffic');const d=await r.json();const arr=d.traffic||[];if(!arr.length){$('trafficEmpty').style.display='block';$('trafficBody').innerHTML='';return;}$('trafficEmpty').style.display='none';$('trafficBody').innerHTML=arr.map(e=>'<tr><td class="tcell when">'+fmtTime(e.t)+'</td><td class="tcell type t-'+esc(e.type||'')+'">'+esc((e.type||'').toUpperCase())+'</td><td class="tcell" style="white-space:normal">'+esc(e.detail||'')+'</td></tr>').join('');}catch(e){}}
+$('clearTrafficBtn').onclick=async()=>{if(!confirm('Clear the traffic log?'))return;await api('/api/admin/traffic',{method:'DELETE'});loadTraffic();toast('Log cleared');};
+
+// ---- Settings ----
+async function loadSettings(){if(!PW)return;try{const r=await api('/api/admin/settings');const d=await r.json();if(d.ok){settings=d.settings;renderSettings();}}catch(e){}}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveSettings,500);}
+async function saveSettings(){if(!settings)return;try{const r=await api('/api/admin/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(settings)});const d=await r.json();if(d.ok){settings=d.settings;toast('Saved');}else toast('Save failed');}catch(e){toast('Save failed');}}
+function tg(el,on,cb){el.classList.toggle('on',!!on);el.onclick=()=>{const v=!el.classList.contains('on');el.classList.toggle('on',v);cb(v);scheduleSave();};}
+
+function renderSettings(){
+  if(!settings)return;
+  // Domains
+  $('envDomains').innerHTML=CONFIG.domains.map(d=>'<span class="chip">'+esc(d)+' <span class="tag">env</span></span>').join('')||'<span class="d">—</span>';
+  $('extraDomains').innerHTML=(settings.domains||[]).map((d,i)=>'<div class="list-item"><span class="grow">'+esc(d)+'</span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No extra domains yet.</span>';
+  $('extraDomains').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.domains.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  // Forward
+  tg($('fwdEnabled'),settings.forwarding.enabled,v=>settings.forwarding.enabled=v);
+  $('fwdRules').innerHTML=(settings.forwarding.rules||[]).map((r,i)=>'<div class="list-item"><span class="grow">'+esc(r.match==='all'?'All emails':(r.match+': '+r.value))+' <small>→ '+esc(r.to)+'</small></span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No rules yet.</span>';
+  $('fwdRules').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.forwarding.rules.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  // Security
+  tg($('rlEnabled'),settings.security.rateLimit.enabled,v=>settings.security.rateLimit.enabled=v);
+  $('rlMax').value=settings.security.rateLimit.max;$('rlWindow').value=settings.security.rateLimit.windowSec;
+  $('bannedList').innerHTML=(settings.security.bannedIps||[]).map((ip,i)=>'<div class="list-item"><span class="grow">'+esc(ip)+'</span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No IPs blocked.</span>';
+  $('bannedList').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.security.bannedIps.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  $('blockedList').innerHTML=(settings.security.blockedSenders||[]).map((s,i)=>'<div class="list-item"><span class="grow">'+esc(s)+'</span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No senders blocked.</span>';
+  $('blockedList').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.security.blockedSenders.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  // Integrations
+  $('apiKeyList').innerHTML=(settings.apiKeys||[]).map((k,i)=>'<div class="list-item"><div class="grow"><b>'+esc(k.label||'key')+'</b><div class="code" style="margin-top:5px">'+esc(k.key)+'</div></div><button class="btn ghost sm copyk" data-k="'+esc(k.key)+'">Copy</button><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No API keys yet.</span>';
+  $('apiKeyList').querySelectorAll('.copyk').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.k);toast('API key copied');});
+  $('apiKeyList').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{settings.apiKeys.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  $('webhookList').innerHTML=(settings.webhooks||[]).map((w,i)=>'<div class="list-item"><span class="grow"><b>'+esc(w.label||'webhook')+'</b><br><small>'+esc(w.url)+'</small></span><div class="tg whtg '+(w.enabled?'on':'')+'" data-i="'+i+'"></div><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No webhooks yet.</span>';
+  $('webhookList').querySelectorAll('.whtg').forEach(t=>t.onclick=()=>{const i=+t.dataset.i;settings.webhooks[i].enabled=!settings.webhooks[i].enabled;renderSettings();scheduleSave();});
+  $('webhookList').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{settings.webhooks.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
+  tg($('tgEnabled'),settings.telegram.enabled,v=>settings.telegram.enabled=v);
+  $('tgToken').value=settings.telegram.botToken||'';$('tgChat').value=settings.telegram.chatId||'';
+  // Appearance
+  $('apName').value=settings.appearance.siteName||'';$('apTagline').value=settings.appearance.tagline||'';$('apLogo').value=settings.appearance.logoUrl||'';$('apPrimary').value=settings.appearance.primaryColor||'';$('apAccent').value=settings.appearance.accentColor||'';$('apLang').value=settings.appearance.language||'en';
+  // Access
+  tg($('acRequire'),settings.access.requirePin,v=>settings.access.requirePin=v);
+  tg($('acPortal'),settings.access.portalMode,v=>settings.access.portalMode=v);
+  $('acPin').value=settings.access.sitePin||'';$('acNote').value=settings.access.portalNote||'';
+  // Cleanup
+  tg($('clEnabled'),settings.cleanup.enabled,v=>settings.cleanup.enabled=v);
+  $('clDays').value=settings.cleanup.days;$('clMax').value=settings.cleanup.maxPerInbox;
+}
+
+// Bind text inputs -> settings
+function bind(id,setter){const el=$(id);el.addEventListener('input',()=>{setter(el.value);scheduleSave();});}
+bind('rlMax',v=>settings.security.rateLimit.max=parseInt(v||'0',10)||0);
+bind('rlWindow',v=>settings.security.rateLimit.windowSec=Math.max(60,parseInt(v||'0',10)||60));
+bind('tgToken',v=>settings.telegram.botToken=v.trim());
+bind('tgChat',v=>settings.telegram.chatId=v.trim());
+bind('apName',v=>settings.appearance.siteName=v);
+bind('apTagline',v=>settings.appearance.tagline=v);
+bind('apLogo',v=>settings.appearance.logoUrl=v.trim());
+bind('apPrimary',v=>settings.appearance.primaryColor=v.trim());
+bind('apAccent',v=>settings.appearance.accentColor=v.trim());
+bind('apLang',v=>settings.appearance.language=v);
+bind('acPin',v=>settings.access.sitePin=v);
+bind('acNote',v=>settings.access.portalNote=v);
+bind('clDays',v=>settings.cleanup.days=parseInt(v||'0',10)||1);
+bind('clMax',v=>settings.cleanup.maxPerInbox=parseInt(v||'0',10)||50);
+$('apLang').addEventListener('change',()=>{settings.appearance.language=$('apLang').value;scheduleSave();});
+
+// Add buttons
+$('addDomainBtn').onclick=()=>{const v=$('newDomain').value.trim().toLowerCase().replace(/^@/,'');if(!v)return;if(!settings.domains)settings.domains=[];if(!settings.domains.includes(v))settings.domains.push(v);$('newDomain').value='';renderSettings();scheduleSave();};
+$('addFwdBtn').onclick=()=>{const to=$('fwdTo').value.trim();if(!to)return toast('Enter a forward destination');const rule={match:$('fwdMatch').value,value:$('fwdValue').value.trim().toLowerCase(),to};settings.forwarding.rules.push(rule);$('fwdTo').value='';$('fwdValue').value='';renderSettings();scheduleSave();toast('Rule added');};
+$('addIpBtn').onclick=()=>{const v=$('newIp').value.trim();if(!v)return;settings.security.bannedIps.push(v);$('newIp').value='';renderSettings();scheduleSave();};
+$('addSenderBtn').onclick=()=>{const v=$('newSender').value.trim().toLowerCase();if(!v)return;settings.security.blockedSenders.push(v);$('newSender').value='';renderSettings();scheduleSave();};
+$('addKeyBtn').onclick=()=>{const label=$('newKeyLabel').value.trim()||'api-key';const key='ym_'+(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):Math.random().toString(36).slice(2)+Date.now().toString(36));settings.apiKeys.push({key,label,createdAt:new Date().toISOString()});$('newKeyLabel').value='';renderSettings();scheduleSave();toast('API key created');};
+$('addWhBtn').onclick=()=>{const url=$('whUrl').value.trim();if(!url)return toast('Enter a webhook URL');settings.webhooks.push({id:Date.now().toString(36),label:$('whLabel').value.trim()||'webhook',url,enabled:true});$('whLabel').value='';$('whUrl').value='';renderSettings();scheduleSave();};
+$('testNotifyBtn').onclick=async()=>{await saveSettings();const r=await api('/api/admin/test-notify');const d=await r.json();toast(d.ok?'Test notification sent':'Failed');};
+$('runCleanupBtn').onclick=async()=>{await saveSettings();const r=await api('/api/admin/cleanup');const d=await r.json();toast(d.ok?('Cleanup: '+ (d.removed||0)+' removed'):'Failed');load();};
+
+setInterval(()=>{if(PW&&!document.hidden){load();}},15000);
+(async()=>{if(PW){const r=await tryUnlock(PW);if(r==='ok')return;if(r==='bad-password'){PW='';sessionStorage.removeItem('ym_dash_pw');}$('lockScreen').classList.remove('hide');$('pinInput').focus();if(r==='network')$('pinErr').textContent='Could not connect to the server (Worker).';}else $('pinInput').focus();})();
+</script>
+</body>
+</html>
