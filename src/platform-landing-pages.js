@@ -11,7 +11,7 @@ const sharedLinks = [
   { href: "/blog/is-temp-mail-safe", label: "temp mail safety guide" },
 ];
 
-const platformData = [
+export const platformData = [
   {
     name: "Discord",
     slug: "discord",

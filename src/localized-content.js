@@ -1,4 +1,5 @@
 import { localizedPath, localeStrings } from "./i18n.js";
+import { PLATFORM_LANDING_PATHS, platformData } from "./platform-landing-pages.js";
 
 const LANG = {
   de: {
@@ -301,6 +302,168 @@ function localizedLandingPagesFor(locale) {
   return pages;
 }
 
+const PLATFORM_LANG = {
+  de: {
+    titleFor: "Temp Mail für", titleSuffix: "kostenlose Wegwerf-E-Mail",
+    descStart: "Nutzen Sie Temp Mail für", descEnd: "mit einem kostenlosen receive-only Postfach. Ehrliche Hinweise zu Verifizierung, blockierten Domains, Datenschutz und dem Moment, in dem eine echte E-Mail besser ist.",
+    hubTitle: "Temp Mail für beliebte Apps und Websites", hubDesc: "Ratgeber zu Temp Mail für beliebte Apps und Websites: wo Wegwerf-E-Mail passt, wo Domains blockiert werden können und wann Sie eine echte Mailbox verwenden sollten.",
+    lead: (name) => `Nutzen Sie eine kostenlose Wegwerf-E-Mail für ${name}, wenn Sie für niedrige Risiken, Tests, Datenschutz oder Spam-Kontrolle ein schnelles receive-only Postfach brauchen.`,
+    hubLead: "Praktische und ehrliche Ratgeber zur Nutzung von Wegwerf-E-Mail bei Apps, sozialen Netzwerken, Spielen, Streaming-Diensten, Shops und Produktivitätstools.",
+    h: {
+      choose: "Plattform auswählen", read: "So lesen Sie diese Ratgeber", best: "Wo Temp Mail am besten passt", no: "Was diese Seiten nicht fördern", why: "Warum Akzeptanz je nach Plattform schwankt",
+      use: (name) => `Warum Menschen Temp Mail bei ${name} nutzen`,
+      accept: (name) => `Akzeptiert ${name} temporäre E-Mail?`,
+      how: (name) => `So verwenden Sie eine temporäre Adresse bei ${name}`,
+      reject: (name) => `Wenn ${name} die Adresse ablehnt`,
+      avoid: (name) => `Wann Sie Temp Mail für ${name} nicht verwenden sollten`,
+      links: "Hilfreiche verwandte Seiten", faq: "FAQ", substance: (name) => `Praktische Einordnung für ${name}`,
+    },
+    platformLabel: (name) => `Temp Mail für ${name}`,
+    category: {
+      "chat communities": "Chat-Communitys", "forums and communities": "Foren und Communitys", "short video apps": "Kurzvideo-Apps", "messaging": "Messaging", "social apps": "Social Apps", "social networks": "soziale Netzwerke", "streaming communities": "Streaming-Communitys", "gaming stores": "Gaming-Stores", "gaming platforms": "Gaming-Plattformen", "console gaming": "Konsolen-Gaming", "music streaming": "Musikstreaming", "streaming services": "Streaming-Dienste", "shopping": "Shopping", "marketplaces": "Marktplätze", "visual discovery": "visuelle Suche", "professional networks": "berufliche Netzwerke", "question and answer sites": "Frage-und-Antwort-Seiten", "publishing": "Publishing", "newsletter platforms": "Newsletter-Plattformen", "AI tools": "KI-Tools", "design tools": "Design-Tools", "cloud storage": "Cloud-Speicher", "dating apps": "Dating-Apps", "email providers": "E-Mail-Anbieter", "email and identity providers": "E-Mail- und Identitätsanbieter",
+    },
+    cta: "→ Kostenlose temporäre E-Mail-Adresse holen",
+    home: "Temp Mail", hub: "Hub für Temp Mail nach Plattform", disposable: "Wegwerf-E-Mail", generator: "Temp Mail Generator", safety: "Sicherheitsratgeber zu Temp Mail",
+    hubBody: [
+      "Jede Seite erklärt, wann eine temporäre E-Mail-Adresse sinnvoll ist, ob eine Plattform bekannte Wegwerf-Domains ablehnen kann, was bei einer abgelehnten Adresse zu tun ist und wann eine dauerhafte Mailbox die bessere Wahl ist. Die ehrliche Antwort unterscheidet sich je nach Dienst: Ein Forum oder eine lockere Community ist oft flexibler, während soziale Netzwerke, Shops, Cloud-Speicher und Identitätsanbieter zusätzliche Vertrauenssignale verlangen können.",
+      "Nutzen Sie Temp Mail für Datenschutz, weniger Spam, Tests mit niedrigem Risiko, einmaligen Zugang und Konten, deren Verlust keinen echten Schaden verursacht. Verwenden Sie es nicht für Bank, Arbeit, Behörden, Gesundheit, bezahlte Abos, Konten mit Käufen oder alles, was später wiederhergestellt werden muss. Der Dienst ist kostenlos, sofort verfügbar, receive-only, unterstützt eigene Namen und mehrere Domains und bereinigt Postfächer regelmäßig.",
+      "Am besten passt Temp Mail, wenn die E-Mail nur einmal gebraucht wird: eine Forenregistrierung bestätigen, prüfen, ob eine App einen Code sendet, einer Community kurz beitreten oder einen Produktfluss testen. Sie erhalten eine echte eingehende Nachricht, ohne aus einer kleinen Aufgabe eine dauerhafte E-Mail-Beziehung zu machen.",
+      "Schwächer passt Temp Mail bei Plattformen, die mehr Vertrauen verlangen. Social Apps, Dating-Apps, Gaming-Stores, Cloud-Speicher und Microsoft-ähnliche Identitätskonten können Wegwerf-Domains ablehnen oder Telefonverifizierung verlangen. Wenn eine Plattform ablehnt, wechseln Sie höchstens einmal die Domain, sofern das Konto wirklich entbehrlich ist. Wenn das Konto wichtig wird, verwenden Sie eine echte Mailbox.",
+      "Diese Ratgeber fördern keinen Betrug, keinen Spam, keine Belästigung, keine Umgehung von Sperren, keinen Zahlungsmissbrauch und keine massenhafte Kontoerstellung. Wegwerf-E-Mail ist ein Werkzeug für Datenschutz und Postfachhygiene. Wenn ein Dienst temporäre E-Mail verbietet, respektieren Sie diese Regel und nutzen Sie einen wiederherstellbaren Account.",
+      "Die praktische Regel ist einfach: Wenn der Verlust des Kontos morgen ärgerlich, aber harmlos wäre, kann Temp Mail passen. Wenn dadurch Geld, Dateien, Follower, Kontakte, Käufe, Arbeit, Abos oder Zugang zu einem anderen wichtigen Konto verloren gingen, gehört das Konto in eine normale E-Mail-Adresse, die Sie kontrollieren.",
+      "Akzeptanz ist nicht zufällig. Community-Seiten und Newsletter-Tools prüfen oft nur, ob eine Adresse eine Bestätigung empfangen kann. Marktplätze, Stores, Gaming-Plattformen, Speicherdienste und Identitätsanbieter denken an Wiederherstellung, Zahlungen, Missbrauchsschutz, Support und langfristigen Besitz. Deshalb versprechen die einzelnen Seiten nie, dass jede Adresse überall funktioniert.",
+    ],
+    generic: {
+      intro: (name, category) => `${name} gehört zur Kategorie ${category}. Eine temporäre Adresse ist dort nützlich, wenn das Konto experimentell, kurzlebig oder klar von Ihrer Hauptidentität getrennt sein soll. Sie bekommen ein Postfach, das den Bestätigungslink oder Einmalcode empfängt, ohne vorher ein weiteres dauerhaftes E-Mail-Konto anzulegen. Temp Mail ist kostenlos, sofort verfügbar, receive-only und verlangt keine Registrierung und kein Passwort. Sie können eine zufällige Adresse verwenden oder einen eigenen Namen mit einer verfügbaren Domain kombinieren.`,
+      mindset: (name) => `Die richtige Erwartung ist wichtig. Temp Mail ist für Datenschutz, Tests und saubere Trennung bei niedrigen Risiken gedacht, nicht für Betrug, Belästigung, Sperrumgehung, Spam oder massenhafte Fake-Konten. Wenn Ihr ${name}-Konto Geld, Käufe, Kontakte, gespeicherte Arbeit, Creator-Funktionen, Abos oder etwas enthält, das Sie später wiederherstellen müssen, verwenden Sie eine dauerhafte E-Mail-Adresse.`,
+      accept: (name) => `${name} kann eine temporäre Adresse akzeptieren, kann bekannte Wegwerf-Domains aber auch blockieren oder zusätzliche Prüfungen verlangen. Manche Plattformen verlangen Telefonverifizierung, Gerätevertrauen oder andere Signale, selbst wenn die E-Mail zunächst angenommen wurde. Kein Temp-Mail-Dienst kann Akzeptanz auf jeder Plattform garantieren.`,
+      signup: (name) => `Öffnen Sie Temp Mail in einem zweiten Tab, kopieren Sie die erzeugte Adresse und fügen Sie sie bei ${name} in das E-Mail-Feld ein. Halten Sie das Postfach offen, während ${name} den Code oder Link sendet. Öffnen Sie die Nachricht sofort, kopieren Sie den Code oder nutzen Sie den Bestätigungslink und schließen Sie die Aufgabe ab, solange das Postfach verfügbar ist.`,
+      reject: (name) => `Wenn ${name} die Adresse ablehnt, erzeugen Sie eine neue Adresse und wählen Sie bei Bedarf eine andere Domain. Prüfen Sie außerdem, ob die Adresse exakt kopiert wurde. Wenn ${name} Telefonverifizierung verlangt oder wiederholt blockiert, ersetzt Temp Mail diese Prüfung nicht. Nutzen Sie dann eine normale Mailbox, besonders wenn das Konto dauerhaft sein soll.`,
+      avoid: (name) => `Verwenden Sie Temp Mail nicht für ein wichtiges ${name}-Konto. Alles mit Zahlungen, Käufen, Abos, Wiederherstellung, geschäftlicher Nutzung, Arbeit, Familienzugang, gespeicherten Dateien, wichtigen Kontakten oder langfristigem Wert braucht eine Mailbox, die Ihnen dauerhaft gehört.`,
+      receive: (name) => `Weil das Postfach receive-only ist, können Sie Nachrichten lesen, aber nicht von dieser Adresse antworten. Für Bestätigungslinks, OTP-Codes, Willkommensnachrichten und einfache Account-Bestätigungen reicht das. Wenn ${name} spätere Supportgespräche, Sicherheitswarnungen oder Rechnungen per E-Mail sendet, ist eine temporäre Adresse die falsche Grundlage.`,
+      storage: "Temporäre Postfächer werden regelmäßig geleert und sind dafür gebaut, verlassen zu werden. Das ist ein Vorteil für Wegwerf-Registrierungen, aber ein Risiko für Wiederherstellung. Verwenden Sie Ihre echte Mailbox für Bank, Arbeit, Behörden, Gesundheit, bezahlte Dienste, Business-Konten und alles, was mit Identität, Geld, rechtlichen Pflichten oder langfristigem Zugang verbunden ist.",
+      related: "Wenn Sie Optionen vergleichen, beginnen Sie mit dem lokalisierten Hub und lesen Sie auch die Grundlagen zu Wegwerf-E-Mail und Sicherheit. Nahe Plattform-Ratgeber helfen, wenn Sie einschätzen möchten, wo ein Wegwerf-Postfach sinnvoll ist und wo ein Dienst wahrscheinlich strengere Prüfungen nutzt.",
+      rule: (name) => `Die sicherste Regel für ${name}: Entscheiden Sie vor der Registrierung, ob das Konto temporär oder dauerhaft ist. Temporäre Konten können temporäre Infrastruktur nutzen. Dauerhafte Konten brauchen eine dauerhafte Mailbox, weil Passwort-Resets, Login-Warnungen, Richtlinienhinweise, Quittungen und Support-Antworten Wochen oder Monate später eintreffen können.`,
+      substance: (name, category) => `Bei ${name} ist der Kontext ${category} entscheidend. Je näher ein Dienst an Identität, Zahlungen, Besitz, Dateien, beruflicher Kommunikation oder persönlichen Beziehungen liegt, desto schlechter passt eine Wegwerf-Adresse. Je eher es um einen kurzen Test, eine einmalige Bestätigung oder einen unverbindlichen Blick in eine Community geht, desto eher kann Temp Mail helfen. Nutzen Sie die Adresse nur für den kleinen, klar abgegrenzten Moment und wechseln Sie zu einer echten Mailbox, sobald das Konto Wert bekommt.`,
+    },
+    steps: (name) => [`Öffnen Sie Temp Mail in einem zweiten Tab und kopieren Sie die erzeugte Adresse.`, `Nutzen Sie die zufällige Adresse oder wählen Sie einen eigenen Namen und eine andere Domain.`, `Fügen Sie die Adresse in das E-Mail-Feld von ${name} ein und senden Sie das Formular ab.`, `Lassen Sie das Postfach offen, während ${name} seine Nachricht sendet.`, `Öffnen Sie die Verifizierungs-E-Mail, kopieren Sie den Code oder nutzen Sie den Link und schließen Sie die Aufgabe ab.`],
+    rejectList: ["Neue Adresse erzeugen und eine andere Domain versuchen.", "Adresse exakt aus Temp Mail kopieren statt abtippen.", "Kurz warten, wenn die Plattform eine Nachricht angekündigt hat.", "Telefonverifizierung erwarten, wenn der Dienst strengere Prüfungen verlangt.", "Dauerhafte E-Mail nutzen, wenn das Konto wichtig ist oder wiederholte Versuche Reibung erzeugen."],
+    faqs: (name) => [[`Kann ich ${name} mit Temp Mail verifizieren?`, `Manchmal, aber nicht garantiert. ${name} kann Wegwerf-Domains blockieren oder zusätzliche Verifizierung verlangen.`], [`Ist Temp Mail für ${name} kostenlos?`, "Ja. Die Adresse ist kostenlos und kann eingehende Nachrichten in Echtzeit empfangen."], [`Kann ich damit Telefonverifizierung umgehen?`, "Nein. Wenn eine Plattform ein Telefon verlangt, ersetzt ein temporäres Postfach diese Prüfung nicht."], [`Kann ich E-Mails von dieser Adresse senden?`, "Nein. Temp Mail ist receive-only und für eingehende Codes, Links und Bestätigungen gedacht."], [`Wie lange sollte ich das Postfach offen lassen?`, `Bis der ${name}-Code oder Bestätigungslink verwendet wurde. Kopieren Sie alles Wichtige sofort, denn Postfächer werden regelmäßig geleert.`]],
+  },
+};
+
+function platformEsc(text) {
+  return String(text).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+function platformP(text) {
+  return `<p>${platformEsc(text)}</p>`;
+}
+
+function platformRawP(html) {
+  return `<p>${html}</p>`;
+}
+
+function platformLink(locale, rest, label) {
+  return `<a href='${localizedPath(locale, rest)}'>${platformEsc(label)}</a>`;
+}
+
+function platformCta(locale, t) {
+  return `<a class='cta' href='${localizedPath(locale, "/")}'>${platformEsc(t.cta)}</a>`;
+}
+
+function platformPeers(currentSlug, offset) {
+  const peers = platformData.filter((item) => item.slug !== currentSlug);
+  return [peers[offset % peers.length], peers[(offset + 9) % peers.length], peers[(offset + 18) % peers.length]];
+}
+
+function localizedPlatformHub(locale, t) {
+  const items = platformData.map((item) => `<li><a href='${localizedPath(locale, `/temp-mail-for-${item.slug}`)}'>${platformEsc(t.platformLabel(item.name))}</a> <span>${platformEsc(t.category[item.category] || item.category)}</span></li>`).join("\n");
+  const body = [
+    `<h1>${platformEsc(t.hubTitle)}</h1>`,
+    `<p class='lead'>${platformEsc(t.hubLead)}</p>`,
+    platformCta(locale, t),
+    "<div class='ad-slot'></div>",
+    `<h2>${platformEsc(t.h.choose)}</h2>`,
+    `<ul>${items}</ul>`,
+    `<h2>${platformEsc(t.h.read)}</h2>`,
+    ...t.hubBody.slice(0, 2).map(platformP),
+    `<h2>${platformEsc(t.h.best)}</h2>`,
+    ...t.hubBody.slice(2, 4).map(platformP),
+    `<h2>${platformEsc(t.h.no)}</h2>`,
+    ...t.hubBody.slice(4, 6).map(platformP),
+    `<h2>${platformEsc(t.h.why)}</h2>`,
+    ...t.hubBody.slice(6).map(platformP),
+    platformRawP(`${platformEsc(t.home)}: ${platformLink(locale, "/", t.home)}. ${platformEsc(t.disposable)}: ${platformLink(locale, "/disposable-email", t.disposable)}. ${platformEsc(t.safety)}: ${platformLink(locale, "/blog/is-temp-mail-safe", t.safety)}.`),
+    platformP(t.hubBody[0]),
+    platformP(t.hubBody[1]),
+    platformP(t.hubBody[2]),
+    platformP(t.hubBody[3]),
+    platformCta(locale, t),
+  ].join("\n");
+  return { title: t.hubTitle, desc: t.hubDesc, body };
+}
+
+function localizedPlatformPage(locale, item, index, t) {
+  const name = item.name;
+  const category = t.category[item.category] || item.category;
+  const peers = platformPeers(item.slug, index);
+  const related = [
+    platformLink(locale, "/temp-mail-for", t.hub),
+    platformLink(locale, "/disposable-email", t.disposable),
+    platformLink(locale, "/blog/is-temp-mail-safe", t.safety),
+    platformLink(locale, `/temp-mail-for-${peers[0].slug}`, t.platformLabel(peers[0].name)),
+    platformLink(locale, `/temp-mail-for-${peers[1].slug}`, t.platformLabel(peers[1].name)),
+  ];
+  const body = [
+    `<h1>${platformEsc(t.platformLabel(name))}</h1>`,
+    `<p class='lead'>${platformEsc(t.lead(name))}</p>`,
+    platformCta(locale, t),
+    "<div class='ad-slot'></div>",
+    `<h2>${platformEsc(t.h.use(name))}</h2>`,
+    platformP(t.generic.intro(name, category)),
+    platformP(t.generic.mindset(name)),
+    platformP(t.generic.substance(name, category)),
+    `<h2>${platformEsc(t.h.accept(name))}</h2>`,
+    platformP(t.generic.accept(name)),
+    platformP(`Diese Einschätzung bleibt bewusst vorsichtig: ${name} kann heute eine Domain akzeptieren und morgen nach einer Filteränderung ablehnen. Eine andere Domain kann funktionieren, während die erste blockiert wird. Auch eine zunächst angenommene Registrierung kann später zusätzliche Prüfungen auslösen.`),
+    `<h2>${platformEsc(t.h.how(name))}</h2>`,
+    platformP(t.generic.signup(name)),
+    `<ul>${t.steps(name).map((step) => `<li>${platformEsc(step)}</li>`).join("")}</ul>`,
+    platformP(t.generic.receive(name)),
+    `<h2>${platformEsc(t.h.reject(name))}</h2>`,
+    platformP(t.generic.reject(name)),
+    `<ul>${t.rejectList.map((step) => `<li>${platformEsc(step)}</li>`).join("")}</ul>`,
+    `<h2>${platformEsc(t.h.avoid(name))}</h2>`,
+    platformP(t.generic.avoid(name)),
+    platformP(t.generic.storage),
+    `<h2>${platformEsc(t.h.links)}</h2>`,
+    platformRawP(`${platformEsc(t.generic.related)} Beginnen Sie mit ${related[0]}, lesen Sie ${related[1]} und ${related[2]}, oder vergleichen Sie ähnliche Ratgeber wie ${related[3]} und ${related[4]}.`),
+    platformP(t.generic.rule(name)),
+    `<h2>${platformEsc(t.h.substance(name))}</h2>`,
+    platformP(t.generic.substance(name, category)),
+    platformP(`Für ${platformEsc(name)} gilt deshalb dieselbe Grenze wie für jede andere Plattform: Temp Mail ist stark, wenn der Vorgang kurz, reversibel und ohne langfristigen Wert ist. Sobald persönliche Kontakte, Zahlungen, gespeicherte Inhalte, Moderationsrechte, berufliche Identität oder wichtige Wiederherstellung betroffen sind, wird eine temporäre Adresse zur Schwachstelle.`),
+    `<h2>${platformEsc(t.h.faq)}</h2>`,
+    ...t.faqs(name).flatMap(([question, answer]) => [`<h3>${platformEsc(question)}</h3>`, platformP(answer)]),
+    platformCta(locale, t),
+  ].join("\n");
+  return {
+    title: `${t.titleFor} ${name} — ${t.titleSuffix}`,
+    desc: `${t.descStart} ${name} ${t.descEnd}`,
+    body,
+  };
+}
+
+function localizedPlatformPagesFor(locale) {
+  const t = PLATFORM_LANG[locale];
+  if (!t) return {};
+  const pages = { [localizedPath(locale, "/temp-mail-for")]: localizedPlatformHub(locale, t) };
+  platformData.forEach((item, index) => {
+    pages[localizedPath(locale, `/temp-mail-for-${item.slug}`)] = localizedPlatformPage(locale, item, index, t);
+  });
+  return pages;
+}
+
 function legal(locale, slug) {
   const l = LANG[locale];
   const map = {
@@ -325,6 +488,7 @@ export function localizedLandingPages() {
   const out = {};
   for (const locale of Object.keys(LANG)) {
     Object.assign(out, localizedLandingPagesFor(locale));
+    Object.assign(out, localizedPlatformPagesFor(locale));
     for (const slug of ["/about", "/privacy", "/terms", "/contact", "/disclaimer"]) {
       out[localizedPath(locale, slug)] = legal(locale, slug);
     }
