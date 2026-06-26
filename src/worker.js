@@ -872,12 +872,17 @@ export default {
         return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
       }
       if (url.pathname === "/sitemap.xml") {
-        const staticPaths = ["/", "/temp-mail-generator", "/disposable-email", "/10-minute-mail", "/fake-email-generator", "/temporary-email-service", "/burner-email", "/temp-gmail", "/anonymous-email", "/alternatives/guerrilla-mail", "/alternatives/mailinator", ...PLATFORM_LANDING_PATHS, "/blog", "/about", "/privacy", "/terms", "/contact", "/disclaimer"];
+        // Paths that have localized versions in every LIVE locale (multiplied by locale below).
+        const localizedPaths = ["/", "/temp-mail-generator", "/disposable-email", "/10-minute-mail", "/fake-email-generator", "/temporary-email-service", "/burner-email", "/temp-gmail", "/anonymous-email", "/alternatives/guerrilla-mail", "/alternatives/mailinator", "/blog", "/about", "/privacy", "/terms", "/contact", "/disclaimer"];
         let slugs = [];
         try { const raw = await env.TEMPMAIL_KV.get("posts:index"); if (raw) { const idx = JSON.parse(raw); if (Array.isArray(idx)) slugs = idx.map((p) => (typeof p === "string" ? p : p && p.slug)).filter(Boolean); } } catch {}
         const fallbackSlugs = localizedBlogPosts("de").map((p) => p.slug);
         slugs = [...new Set([...slugs, ...fallbackSlugs])];
-        const urls = LIVE_LOCALES.flatMap((loc) => [...staticPaths, ...slugs.map((s) => `/blog/${s}`)].map((p) => localizedPath(loc, p)));
+        // Localized pages × live locales, PLUS English-only platform pages once (they have no localized versions).
+        const urls = [
+          ...LIVE_LOCALES.flatMap((loc) => [...localizedPaths, ...slugs.map((s) => `/blog/${s}`)].map((p) => localizedPath(loc, p))),
+          ...PLATFORM_LANDING_PATHS,
+        ];
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
           urls.map((p) => `  <url><loc>${seoBase}${p}</loc></url>`).join("\n") + `\n</urlset>\n`;
         return new Response(xml, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" } });
