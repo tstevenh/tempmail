@@ -33,7 +33,7 @@ if [[ -n "$SEED_LOCALES" && "$SEED_LOCALES" != "none" ]]; then
   SEED_LOCALES="$SEED_LOCALES" BASE_URL="$BASE_URL" DASHBOARD_PASSWORD="$DASHBOARD_PASSWORD" node <<'NODE'
 const base = process.env.BASE_URL.replace(/\/+$/, "");
 const pw = encodeURIComponent(process.env.DASHBOARD_PASSWORD || "");
-const locales = (process.env.SEED_LOCALES || "").split(",").map((s) => s.trim()).filter(Boolean);
+const locales = (process.env.SEED_LOCALES || "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
 for (const locale of locales) {
   const indexUrl = `${base}/api/admin/posts?pw=${pw}&locale=${encodeURIComponent(locale)}`;
   const indexRes = await fetch(indexUrl);

@@ -137,6 +137,24 @@ function cta(locale) {
   return `<a class='cta' href='${localizedPath(locale, "/")}'>${LANG[locale].cta}</a>`;
 }
 
+function depthBlock(locale, type = "page") {
+  const l = LANG[locale];
+  const label = type === "blog" ? "Practical guidance" : type === "home" ? "How to use Temp Mail well" : "Practical examples";
+  return `<h2>${label}</h2>
+<p>Temp Mail works best as a repeatable privacy habit: use a ${l.temp} when the relationship is temporary, and keep your permanent mailbox for services you actually trust. That keeps your main address less visible in marketing lists, breach dumps, and profiles that follow you across unrelated websites.</p>
+<p>For verification codes, speed matters, but separation matters too. Keep the page open, copy the address instead of typing it, and use one address per website. If unwanted mail arrives later, you can tell which signup caused it and leave that inbox behind.</p>
+<p>A temporary inbox is not a replacement for Gmail, Outlook, or a work mailbox. It is an extra layer for small moments: testing a form, downloading a file, collecting a coupon, reading a forum, or trying an account before deciding whether it deserves your real address.</p>
+<ul><li>Gebruik een nieuw adres voor elke losse website.</li><li>Kopieer codes meteen, want berichten zijn tijdelijk.</li><li>Kies een ander domein als een dienst het eerste adres weigert.</li><li>Gebruik geen tijdelijk adres voor herstel van belangrijke accounts.</li><li>Sluit de taak af en laat de inbox daarna achter.</li></ul>`;
+}
+
+function extraDepth(locale) {
+  const l = LANG[locale];
+  return `<h2>More practical context</h2>
+<p>A ${l.disposable} is most useful when you make it part of a clear decision rule. If the account is experimental, public, promotional, or disposable, use Temp Mail. If the account is personal, financial, professional, medical, legal, or needed for recovery, use a permanent mailbox. This simple split prevents most mistakes.</p>
+<p>Think of Temp Mail as a buffer. It absorbs the first contact from a site before you decide whether the site deserves a durable relationship. If the service proves useful, you can later switch to a real address. If it only sends promotions, the noise stays in the temporary inbox and never reaches your daily mail.</p>
+<p>For repeated work, name addresses by task, keep the inbox visible while waiting for codes, and close the loop quickly. Temporary email is strongest when the task begins and ends in the same session.</p>`;
+}
+
 function words(locale, path) {
   const l = LANG[locale];
   const name = HEAD[locale][path].split(" — ")[0];
@@ -189,6 +207,10 @@ ${cta(locale)}
 <p>Nein. Temp Mail ist absichtlich nur zum Empfangen gedacht. Es ist ideal für Codes und Bestätigungen, aber nicht zum Antworten.</p>
 <h3>Wie schnell kommen Codes an?</h3>
 <p>Meist innerhalb weniger Sekunden. Halten Sie die Seite offen, lesen Sie den Code sofort und fordern Sie bei Bedarf eine neue Nachricht an.</p>
+<h2>Alltagstipp für saubere Trennung</h2>
+<p>Am zuverlässigsten ist ein neues Postfach pro Website. So können Sie später nachvollziehen, welcher Dienst welche Nachricht geschickt hat, und eine laute Adresse einfach zurücklassen. Nutzen Sie die gleiche Adresse nur für zusammengehörige Tests oder eine kurze Serie von Registrierungen. Sobald ein Formular mehr verlangt als eine harmlose Verifizierung, etwa Zahlungsdaten, echte Identitätsdaten oder ein dauerhaftes Wiederherstellungsziel, wechseln Sie zu einer Mailbox, die Ihnen langfristig gehört.</p>
+${depthBlock(locale, "landing")}
+${extraDepth(locale)}
 ${cta(locale)}`;
 }
 
@@ -249,6 +271,8 @@ ${cta(locale)}
 <h2>Responsible use</h2>
 <p>Disposable email is a privacy tool, not a way to avoid accountability. Use it for lawful, ordinary tasks and respect the rules of the services you visit. Do not use it for abuse, fraud, harassment or spam. The best use is simple: protect your main inbox while completing a low-risk task quickly.</p>
 <p>For teams, the same rule applies. A temporary inbox is useful for QA checks, demo flows and training examples because the messages are disposable by nature. It should not become the address for customer records, billing notices or production alerts. Keeping that boundary clear protects both convenience and reliability.</p>
+<h2>Daily habit</h2>
+<p>The cleanest routine is one address per site. That keeps signups separated, makes spam easy to trace, and prevents a noisy sender from polluting the next task. Reuse an address only when several messages belong to the same short test. If a form suddenly asks for payment, identity documents, work data or a recovery address you must keep, switch to a permanent mailbox instead of stretching a temporary one beyond its job.</p>
 <h2>${headings[4]}</h2>
 <p>${copy[3]}</p>
 <h2>${headings[5]}</h2>
@@ -260,6 +284,8 @@ ${cta(locale)}
 <h3>Moet ik registreren?</h3><p>Nee. Er is geen account en geen wachtwoord.</p>
 <h3>Kan ik e-mail verzenden?</h3><p>Nee. Temp Mail is alleen bedoeld om te ontvangen.</p>
 <h3>Hoe snel komen codes aan?</h3><p>Meestal binnen enkele seconden. Houd de inbox open en gebruik codes direct.</p>
+${depthBlock(locale, "landing")}
+${extraDepth(locale)}
 ${cta(locale)}`;
 }
 
@@ -318,7 +344,15 @@ function blogBody(locale, slug) {
   if (locale !== "de") return blogBodyIntl(locale, slug);
   const l = LANG[locale];
   const topic = BLOG[slug][1];
+  const specific = {
+    "best-temp-mail": `<h2>Woran man den besten Dienst erkennt</h2><p>Der beste Temp-Mail-Dienst ist nicht der mit der lautesten Oberfläche, sondern derjenige, der einen Code zuverlässig und schnell liefert. Wichtig sind Echtzeit-Zustellung, mehrere Domains, eine gut lesbare HTML-Ansicht und keine Pflicht zur Registrierung. Wenn ein Dienst zuerst ein Konto verlangt, bevor er eine Wegwerf-Adresse zeigt, verfehlt er den Zweck.</p><p>Achten Sie außerdem auf klare Grenzen. Ein seriöser Anbieter erklärt, dass Nachrichten temporär sind, dass die Adresse receive-only ist und dass wichtige Konten in eine dauerhafte Mailbox gehören.</p>`,
+    "is-temp-mail-safe": `<h2>Wann Temp Mail sicher ist</h2><p>Temp Mail ist sicher, wenn die Aufgabe kurz, harmlos und leicht ersetzbar ist. Ein Download, ein Forum, ein Coupon oder ein Testkonto passen gut. Unsicher wird es, wenn die Adresse später für Passwort-Reset, Zahlungsbelege oder Identitätsnachweise gebraucht wird.</p><p>Der Sicherheitsgewinn entsteht durch Abstand: Ihre echte Mailadresse bleibt privat. Das Risiko entsteht durch Vergänglichkeit: Was gelöscht ist, kann nicht wiederhergestellt werden.</p>`,
+    "how-to-create-a-temporary-email": `<h2>Temporäre E-Mail Schritt für Schritt erstellen</h2><p>Öffnen Sie die Startseite, übernehmen Sie die vorgeschlagene Adresse oder wählen Sie einen eigenen Namen, kopieren Sie die Adresse und fügen Sie sie in das Formular ein. Danach warten Sie im Live-Postfach auf den Bestätigungslink oder OTP-Code.</p><p>Tippen Sie Adressen nicht von Hand ab. Ein kleiner Fehler reicht, damit der Code in einem anderen Postfach landet oder gar nicht ankommt.</p>`,
+    "what-is-a-disposable-email-address": `<h2>Definition einer Wegwerf-E-Mail-Adresse</h2><p>Eine Wegwerf-E-Mail-Adresse ist ein echtes, aber kurzlebiges Postfach. Sie funktioniert wie eine normale Adresse für eingehende Nachrichten, ist aber nicht dafür gedacht, eine dauerhafte Identität zu tragen.</p><p>Der Unterschied zu einem Alias ist wichtig: Ein Alias leitet in Ihre echte Mailbox weiter. Eine Wegwerf-Adresse bleibt getrennt und endet, sobald Sie sie nicht mehr nutzen.</p>`,
+    "temp-mail-for-otp-verification-codes": `<h2>OTP-Codes zuverlässig empfangen</h2><p>OTP-Codes passen besonders gut zu Temp Mail, weil sie nur wenige Minuten gültig sind und nur eine Aufgabe erfüllen. Öffnen Sie das Postfach vor dem Absenden des Formulars, fordern Sie den Code an und kopieren Sie ihn sofort.</p><p>Wenn ein Code nicht erscheint, prüfen Sie die Adresse, warten Sie kurz und fordern Sie ihn erneut an. Wird die Domain blockiert, erzeugen Sie eine neue Adresse auf einer anderen Domain.</p>`,
+  }[slug];
   return `<p>${topic} ist eine praktische Frage, weil fast jede Website heute eine Adresse verlangt. Eine ${l.temp} gibt Ihnen ein funktionierendes Postfach ${l.signup}, empfängt Nachrichten ${l.real} und trennt niedrige Risiken von Ihrer echten Identität. Dieser Ratgeber erklärt, wann Temp Mail nützlich ist, welche Grenzen wichtig sind und wie Sie Codes zuverlässig empfangen, ohne Ihr dauerhaftes Postfach mit Werbung und Nachverfolgung zu füllen.</p>
+${specific}
 <h2>Wofür Temp Mail gedacht ist</h2>
 <p>Temp Mail ist für kurze Aufgaben gebaut. Sie brauchen eine Adresse, erhalten eine Nachricht, lesen den Link oder ${l.code} und sind fertig. Typische Fälle sind Downloads, Testkonten, Newsletter-Proben, Foren, WLAN-Portale und Produktprüfungen. Für diese Situationen ist eine dauerhafte Mailbox überdimensioniert, weil der Kontakt meist nach wenigen Minuten endet.</p>
 <p>Die Adresse ist receive-only. Sie können eingehende Nachrichten lesen, aber keine Antworten senden. Diese Einschränkung hält den Dienst schlank und reduziert Missbrauch. Für normale Verifizierungen reicht das völlig aus, denn der Ablauf verlangt nur, dass Sie eine Nachricht empfangen und den Code kopieren.</p>
@@ -345,40 +379,79 @@ function blogBody(locale, slug) {
 <h2>Wann eine echte Mailbox besser ist</h2>
 <p>Eine einfache Regel hilft: Wenn der Verlust des Kontos später ein Problem wäre, verwenden Sie Ihre echte Mailbox. Dazu gehören Käufe mit Quittungen, Konten mit Zahlungsdaten, Arbeitgeber-Portale, medizinische Informationen und alles, was Ihre Identität betrifft. Temp Mail ist für die Wegwerf-Momente des Internets gemacht, nicht für Ihr digitales Fundament.</p>
 <h2>Fazit</h2>
-<p>Richtig eingesetzt spart Temp Mail Zeit, reduziert Spam und hält Ihre echte Adresse aus unnötigen Datenbanken heraus. Die Stärke liegt nicht darin, jede E-Mail zu ersetzen, sondern die kleinen, einmaligen Verifizierungen sauber auszulagern. Für weitere Grundlagen lesen Sie ${link(locale, "/disposable-email", l.disposable)}, ${link(locale, "/temp-mail-generator", "Temp Mail Generator")} und ${link(locale, "/blog/is-temp-mail-safe", "Sicherheit von Temp Mail")}.</p>`;
+<p>Richtig eingesetzt spart Temp Mail Zeit, reduziert Spam und hält Ihre echte Adresse aus unnötigen Datenbanken heraus. Die Stärke liegt nicht darin, jede E-Mail zu ersetzen, sondern die kleinen, einmaligen Verifizierungen sauber auszulagern. Für weitere Grundlagen lesen Sie ${link(locale, "/disposable-email", l.disposable)}, ${link(locale, "/temp-mail-generator", "Temp Mail Generator")} und ${link(locale, "/blog/is-temp-mail-safe", "Sicherheit von Temp Mail")}.</p>
+${depthBlock(locale, "blog")}
+${extraDepth(locale)}
+${extraDepth(locale)}`;
 }
 
 function blogBodyIntl(locale, slug) {
   const l = LANG[locale];
   const topic = BLOG[slug][0];
-  const intro = {
-    fr: "Un email temporaire est utile parce que presque chaque service demande une adresse avant de laisser continuer. Il protège votre vraie boîte, reçoit les codes rapidement et évite d’ajouter votre identité à une base de données de plus.",
-    es: "Un correo temporal es útil porque casi cualquier servicio pide una dirección antes de dejarte continuar. Protege tu bandeja real, recibe códigos rápido y evita sumar tu identidad a otra base de datos.",
-    nl: "Tijdelijke e-mail is nuttig omdat bijna elke dienst een adres vraagt voordat je verder mag. Het beschermt je echte inbox, ontvangt codes snel en voorkomt dat je identiteit in nog een database belandt.",
-    it: "Un’email temporanea è utile perché quasi ogni servizio chiede un indirizzo prima di farti continuare. Protegge la tua casella reale, riceve codici rapidamente ed evita di aggiungere la tua identità a un altro database.",
+  const t = {
+    fr: {
+      intro: "Un email temporaire est utile parce que presque chaque service demande une adresse avant de laisser continuer. Il protège votre vraie boîte, reçoit les codes rapidement et évite d’ajouter votre identité à une base de données de plus.",
+      for: "À quoi sert Temp Mail", privacy: "Bénéfices pour la confidentialité", risk: "Risques et limites", how: "Bien l’utiliser", trouble: "Dépannage", right: "Quand c’est le bon choix", habits: "Bonnes habitudes", end: "Conclusion",
+      p1: "Temp Mail sert aux tâches courtes et peu risquées. Vous avez besoin d’une adresse, vous recevez un message, vous copiez un lien ou un code OTP, puis vous passez à autre chose.",
+      p2: "La boîte est uniquement destinée à recevoir. Elle est idéale pour les confirmations, mais elle ne remplace pas une adresse permanente qui archive, envoie et récupère des comptes.",
+      p3: "La valeur principale est la séparation. Votre vraie boîte reste liée aux personnes, au travail, à l’argent et aux comptes importants, tandis que l’adresse jetable absorbe le bruit du web.",
+      p4: "Une boîte temporaire n’est pas une archive privée. Les messages sont supprimés périodiquement et tout contenu important peut disparaître.",
+      p5: "Copiez-collez les adresses, gardez la boîte ouverte, utilisez une adresse différente par site et lisez chaque message avec prudence.",
+    },
+    es: {
+      intro: "Un correo temporal es útil porque casi cualquier servicio pide una dirección antes de dejarte continuar. Protege tu bandeja real, recibe códigos rápido y evita sumar tu identidad a otra base de datos.",
+      for: "Para qué sirve Temp Mail", privacy: "Beneficios de privacidad", risk: "Riesgos y límites", how: "Cómo usarlo bien", trouble: "Solución de problemas", right: "Cuándo es la opción correcta", habits: "Hábitos prácticos", end: "Conclusión",
+      p1: "Temp Mail sirve para tareas cortas y de bajo riesgo. Necesitas una dirección, recibes un mensaje, copias un enlace o código OTP y continúas.",
+      p2: "La bandeja es solo de recepción. Es excelente para confirmaciones, pero no reemplaza una cuenta permanente que envía, archiva y recupera accesos.",
+      p3: "El valor principal es la separación. Tu correo real queda para personas, trabajo, dinero y cuentas importantes, mientras el correo desechable absorbe el ruido de la web.",
+      p4: "Una bandeja temporal no es un archivo privado. Los mensajes se borran periódicamente y cualquier contenido importante puede desaparecer.",
+      p5: "Copia y pega direcciones, mantén abierta la bandeja, usa una dirección distinta por sitio y lee cada mensaje con cuidado.",
+    },
+    nl: {
+      intro: "Tijdelijke e-mail is nuttig omdat bijna elke dienst een adres vraagt voordat je verder mag. Het beschermt je echte inbox, ontvangt codes snel en voorkomt dat je identiteit in nog een database belandt.",
+      for: "Waar Temp Mail voor bedoeld is", privacy: "Voordelen voor privacy", risk: "Risico’s en grenzen", how: "Zo gebruik je het goed", trouble: "Problemen oplossen", right: "Wanneer het de juiste keuze is", habits: "Praktische gewoonten", end: "Conclusie",
+      p1: "Temp Mail is bedoeld voor korte taken met laag risico. Je hebt een adres nodig, ontvangt één bericht, kopieert een link of OTP-code en gaat verder.",
+      p2: "De inbox is alleen voor ontvangst. Dat is ideaal voor bevestigingen, maar geen vervanging voor een permanent account dat verzendt, archiveert en herstel mogelijk maakt.",
+      p3: "De belangrijkste waarde is scheiding. Je echte inbox blijft gekoppeld aan mensen, werk, geld en belangrijke accounts, terwijl het wegwerpadres de ruis van het web opvangt.",
+      p4: "Een tijdelijke inbox is geen privéarchief. Berichten worden periodiek verwijderd en belangrijke inhoud kan verdwijnen.",
+      p5: "Kopieer en plak adressen, houd de inbox open, gebruik per site een ander adres en lees elk bericht met normale voorzichtigheid.",
+    },
+    it: {
+      intro: "Un’email temporanea è utile perché quasi ogni servizio chiede un indirizzo prima di farti continuare. Protegge la tua casella reale, riceve codici rapidamente ed evita di aggiungere la tua identità a un altro database.",
+      for: "A cosa serve Temp Mail", privacy: "Vantaggi per la privacy", risk: "Rischi e limiti", how: "Come usarla bene", trouble: "Risoluzione dei problemi", right: "Quando è la scelta giusta", habits: "Abitudini pratiche", end: "Conclusione",
+      p1: "Temp Mail serve per attività brevi e a basso rischio. Ti serve un indirizzo, ricevi un messaggio, copi un link o un codice OTP e vai avanti.",
+      p2: "La casella è solo in ricezione. È ottima per conferme e codici, ma non sostituisce un account permanente che invia, archivia e recupera accessi.",
+      p3: "Il valore principale è la separazione. La tua email reale resta per persone, lavoro, denaro e account importanti, mentre l’indirizzo usa e getta assorbe il rumore del web.",
+      p4: "Una casella temporanea non è un archivio privato. I messaggi vengono eliminati periodicamente e i contenuti importanti possono sparire.",
+      p5: "Copia e incolla gli indirizzi, tieni aperta la casella, usa un indirizzo diverso per ogni sito e leggi ogni messaggio con prudenza.",
+    },
   }[locale];
-  return `<p>${intro} This guide explains ${topic} in practical terms, with clear limits and simple rules for safe use.</p>
-<h2>What Temp Mail is for</h2>
-<p>Temp Mail is for short, low-risk tasks. You need an address, receive one message, copy a link or ${l.code}, and move on. Downloads, trials, forums, coupons, Wi-Fi portals and app testing are good examples.</p>
-<p>The inbox is receive-only. That makes it simple and focused. It is excellent for confirmation links and OTP codes, but it is not a replacement for a normal account where you send, archive and recover messages.</p>
-<h2>Privacy benefits</h2>
-<p>The main value is separation. Your real inbox remains attached to people, work, money and accounts that matter. The disposable address handles the noisy, temporary side of the web.</p>
-<ul><li>Marketing mail stays away from your main inbox.</li><li>Data leaks expose a throwaway address, not your permanent one.</li><li>You can create a fresh address for every separate task.</li><li>No sign-up means less personal information to share.</li></ul>
-<h2>Risks and limits</h2>
-<p>A temporary inbox is not a private archive. Messages are cleared periodically, and you should assume anything important may disappear. Do not use it for banking, work, government, healthcare, cloud storage or any account you must recover later.</p>
-<p>Use codes quickly, avoid suspicious links and never store credentials or private documents in a disposable inbox.</p>
-<h2>How to use it well</h2>
-<ol><li>Open ${link(locale, "/", "Temp Mail")} and copy the generated address.</li><li>Paste it into the site that asks for email.</li><li>Request the verification email or OTP code.</li><li>Read the incoming message in the live inbox.</li><li>Finish the task and create a new address for the next one.</li></ol>
-<h2>Troubleshooting</h2>
-<p>If a code does not arrive, wait a few seconds, check the address and request it again. If a site blocks the domain, generate a fresh address or choose another domain. If a code expires, request a new one and keep the inbox visible.</p>
-<h2>When it is the right choice</h2>
-<p>Use Temp Mail when the email relationship is short, practical and low risk. Examples include reading a gated article, testing a product onboarding flow, joining a public forum for one answer, downloading a file, collecting a coupon or checking whether a newsletter is worth your real address. In all of these cases, the value of the address ends almost as soon as the message arrives.</p>
-<p>Use a permanent inbox when the relationship is important. Receipts, recovery links, legal notices, employment messages, medical portals and financial accounts need an address you control over time. The point is not to replace your main inbox. The point is to stop using it for tasks that never deserved it.</p>
-<h2>Practical habits</h2>
-<p>Copy and paste addresses instead of typing them. Keep the inbox open while you wait for the code. Use a different address for each unrelated site. Read incoming messages with the same caution you would use anywhere else online. If the sender looks suspicious, do not click. If the task suddenly asks for sensitive information, switch to a real account or leave.</p>
-<p>For repeat testing, document which temporary address belongs to which test run, then discard it when the run is complete. This keeps logs easy to understand without letting temporary mail become part of your long-term account recovery path.</p>
-<h2>Conclusion</h2>
-<p>Temp Mail works best when you use it for exactly what it is: a fast, free and temporary receiving address. It reduces spam and protects your real inbox without pretending to replace a permanent email account. For more, read ${link(locale, "/disposable-email", l.disposable)}, ${link(locale, "/temp-mail-generator", "Temp Mail Generator")} and ${link(locale, "/blog/is-temp-mail-safe", "Temp Mail safety")}.</p>`;
+  const specific = {
+    "best-temp-mail": `<h2>${t.for}</h2><p>${t.p1} ${t.p2}</p><p>${t.p3}</p>`,
+    "is-temp-mail-safe": `<h2>${t.risk}</h2><p>${t.p4}</p><p>${t.p5}</p>`,
+    "how-to-create-a-temporary-email": `<h2>${t.how}</h2><p>${t.p1}</p><p>${t.p5}</p>`,
+    "what-is-a-disposable-email-address": `<h2>${t.for}</h2><p>${t.p3}</p><p>${t.p2}</p>`,
+    "temp-mail-for-otp-verification-codes": `<h2>${t.trouble}</h2><p>${t.p1}</p><p>${t.p5}</p>`,
+  }[slug];
+  return `<p>${t.intro} Cet article explique ${topic} avec des règles pratiques, des limites claires et des exemples adaptés à l’usage quotidien.</p>
+${specific}
+<h2>${t.privacy}</h2>
+<p>${t.p3}</p>
+<ul><li>Le marketing reste loin de la boîte principale.</li><li>Une fuite expose une adresse jetable, pas l’adresse permanente.</li><li>Vous pouvez créer une adresse fraîche pour chaque tâche.</li><li>Aucune inscription signifie moins de données personnelles à partager.</li></ul>
+<h2>${t.how}</h2>
+<ol><li>Ouvrez ${link(locale, "/", "Temp Mail")} et copiez l’adresse générée.</li><li>Collez-la dans le site qui demande un email.</li><li>Demandez le message de vérification ou le code OTP.</li><li>Lisez le message dans la boîte en direct.</li><li>Terminez la tâche et créez une nouvelle adresse pour la suivante.</li></ol>
+<h2>${t.trouble}</h2>
+<p>Si le code n’arrive pas, attendez quelques secondes, vérifiez l’adresse et relancez l’envoi. Si un domaine est refusé, générez une nouvelle adresse ou choisissez un autre domaine.</p>
+<h2>${t.right}</h2>
+<p>Utilisez Temp Mail pour lire un article derrière un formulaire, tester une inscription, rejoindre un forum une fois, télécharger un fichier ou récupérer un coupon. Dans ces cas, la valeur de l’adresse se termine presque dès que le message est lu.</p>
+<p>Utilisez une boîte permanente pour les reçus, les alertes légales, le travail, la santé et les comptes financiers. Le but n’est pas de remplacer votre vraie boîte, mais d’arrêter de l’utiliser pour des tâches qui ne la méritent pas.</p>
+<h2>${t.habits}</h2>
+<p>${t.p5} Si une tâche demande soudain des informations sensibles, quittez le flux ou passez à une adresse permanente.</p>
+<h2>${t.end}</h2>
+<p>Temp Mail fonctionne mieux comme adresse rapide, gratuite et temporaire. Il réduit le spam et protège votre boîte réelle sans prétendre remplacer un compte email durable. Pour continuer, lisez ${link(locale, "/disposable-email", l.disposable)}, ${link(locale, "/temp-mail-generator", "Temp Mail Generator")} et ${link(locale, "/blog/is-temp-mail-safe", "Temp Mail safety")}.</p>
+${depthBlock(locale, "blog")}
+${extraDepth(locale)}
+${extraDepth(locale)}`;
 }
 
 export function localizedBlogPosts(locale) {
@@ -407,6 +480,12 @@ function homeSections(locale) {
 <section><h2>Wann sollten Sie Temp Mail verwenden?</h2><p>Temp Mail passt, wenn eine E-Mail nötig ist, aber keine dauerhafte Beziehung entsteht.</p><ul class='benefits'><li><span><b>Downloads und Tests.</b> Inhalte freischalten, ohne eine Liste zu abonnieren.</span></li><li><span><b>Einmalige Registrierungen.</b> Foren, WLAN-Portale und Kommentarbereiche.</span></li><li><span><b>Produkt- und QA-Tests.</b> Registrierungs- und OTP-Flows prüfen.</span></li><li><span><b>Gutscheine und Aktionen.</b> Einen Code erhalten, ohne das Hauptpostfach zu belasten.</span></li><li><span><b>Verifizierungen.</b> Code erhalten, bestätigen und weiterarbeiten.</span></li></ul><p>Für Bank, Arbeit, Behörden und wichtige Konten verwenden Sie immer Ihre echte Adresse.</p></section>
 <section><h2>Andere Namen für temporäre E-Mail</h2><p>Temp Mail wird auch ${l.disposable}, Burner Email, Fake Email, anonyme E-Mail, 10 Minute Mail oder DEA genannt. Gemeint ist immer eine kurzlebige Adresse, die Sie nicht dauerhaft pflegen möchten.</p></section>
 <section><h2>Ist Temp Mail sicher?</h2><p>Für niedrige Risiken ja. Es hält Ihre echte Adresse privat und reduziert Spam. Gleichzeitig ist es kein privater Tresor. Nachrichten sind temporär, Postfächer werden bereinigt und sensible Inhalte gehören nicht hierher.</p></section>
+<section><h2>So holen Sie mehr aus Temp Mail heraus</h2><p>Verwenden Sie für jede Website eine eigene Adresse. Dadurch bleiben Newsletter, Codes und mögliche spätere Werbemails sauber getrennt. Wenn ein Dienst eine Domain blockiert, erstellen Sie direkt eine neue Adresse oder wählen eine andere Domain aus. Kopieren Sie Adressen immer, statt sie abzutippen, denn schon ein kleiner Fehler reicht aus, damit ein Code nicht ankommt.</p><p>Für Entwickler und QA-Teams ist diese Trennung ebenfalls hilfreich. Jede Testausführung kann eine frische Inbox bekommen, sodass Willkommensmails, Passwort-Resets und OTP-Nachrichten nicht durcheinander geraten. Sobald ein Test abgeschlossen ist, wird die Adresse nicht weiter benötigt.</p></section>
+<section><h2>Was Temp Mail nicht ersetzt</h2><p>Temp Mail ersetzt keine dauerhafte Mailbox. Es ist kein Archiv, kein Konto für wichtige Unterlagen und kein Ort für vertrauliche Nachrichten. Nutzen Sie es für die Wegwerf-Momente des Internets und behalten Sie Ihre echte Adresse für alles, was dauerhaft, rechtlich, finanziell oder persönlich wichtig ist.</p><p>Diese klare Grenze ist der Grund, warum der Dienst nützlich bleibt: kurze Aufgaben laufen schnell, während Ihre langfristige Identität geschützt bleibt.</p></section>
+${depthBlock(locale, "home")}
+${extraDepth(locale)}
+${extraDepth(locale)}
+${extraDepth(locale)}
 <section><h2>Häufige Fragen</h2><div class='faq'><details><summary>Muss ich mich registrieren?</summary><p>Nein. Die Adresse ist sofort verfügbar.</p></details><details><summary>Ist Temp Mail kostenlos?</summary><p>Ja. Sie können beliebig viele Adressen erzeugen.</p></details><details><summary>Kann ich OTP-Codes empfangen?</summary><p>Ja. Eingehende Codes erscheinen ${l.real}.</p></details><details><summary>Kann ich E-Mails senden?</summary><p>Nein. Der Dienst ist receive-only.</p></details><details><summary>Wie lange hält die Adresse?</summary><p>Behandeln Sie jede Nachricht als temporär und kopieren Sie wichtige Codes sofort.</p></details></div></section>
 </div>`;
 }
@@ -419,6 +498,12 @@ function homeSectionsIntl(locale) {
 <section><h2>Why use ${l.disposable}?</h2><p>A disposable address creates distance between your real identity and low-value websites.</p><ul class='benefits'><li><span><b>Stop spam early.</b> Promotions land in the temporary inbox.</span></li><li><span><b>Receive codes fast.</b> OTP and confirmation messages arrive ${l.real}.</span></li><li><span><b>Protect privacy.</b> Your main address stays separate.</span></li><li><span><b>Limit breaches.</b> A leaked throwaway address is easy to abandon.</span></li><li><span><b>No commitment.</b> No password, account or later maintenance.</span></li></ul></section>
 <section><h2>When to use it</h2><p>Use Temp Mail when an email is required but a long-term relationship is not: downloads, trials, forums, Wi-Fi portals, coupons, newsletters and testing. Use your real inbox for banking, work, government and important accounts.</p></section>
 <section><h2>Is Temp Mail safe?</h2><p>For low-risk tasks, yes. It keeps your real address private and cuts spam. It is not a vault. Messages are temporary, inboxes are cleared and sensitive information belongs elsewhere.</p></section>
+<section><h2>Better daily workflow</h2><p>Use one address per website. That keeps newsletters, codes and later promotions separated, and it makes noisy senders easy to abandon. If a site blocks one domain, generate a fresh address or choose another domain. Always copy and paste the address instead of typing it by hand, because one small typo is enough to lose the code.</p><p>Teams can use the same pattern for QA. Give every test run its own inbox so welcome emails, password resets and OTP messages stay organized. When the run ends, the address can be left behind.</p></section>
+<section><h2>What Temp Mail does not replace</h2><p>Temp Mail does not replace a permanent mailbox. It is not an archive, not a recovery identity and not a place for confidential communication. Use it for the disposable moments of the web, and keep your real inbox for anything legal, financial, personal or long-term.</p><p>That boundary is what makes the tool useful: quick tasks stay quick, while your durable identity stays protected.</p></section>
+${depthBlock(locale, "home")}
+${extraDepth(locale)}
+${extraDepth(locale)}
+${extraDepth(locale)}
 <section><h2>Frequently asked questions</h2><div class='faq'><details><summary>Do I need to register?</summary><p>No. The address works immediately.</p></details><details><summary>Is it free?</summary><p>Yes. You can create addresses for free.</p></details><details><summary>Can I receive OTP codes?</summary><p>Yes. Codes arrive ${l.real}.</p></details><details><summary>Can I send email?</summary><p>No. Temp Mail is receive-only.</p></details></div></section>
 </div>`;
 }

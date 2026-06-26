@@ -458,11 +458,12 @@ async function getPostsIndex(env, locale = "en") {
   return locale === "en" ? [] : localizedBlogPosts(locale).map((p) => ({ slug: p.slug, title: p.title, desc: p.desc, date: p.date }));
 }
 async function getPost(env, slug, locale = "en") {
+  if (locale !== "en") return localizedBlogPost(locale, slug);
   try {
     const raw = await env.TEMPMAIL_KV.get(postKey(locale, slug));
     if (raw) return JSON.parse(raw);
   } catch {}
-  return locale === "en" ? null : localizedBlogPost(locale, slug);
+  return null;
 }
 async function savePost(env, post, locale = "en") {
   const slug = slugify(post.slug || post.title);
