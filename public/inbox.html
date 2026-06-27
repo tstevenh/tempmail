@@ -27,12 +27,22 @@ body{font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);c
 a{color:inherit}
 ::selection{background:#15171a;color:#fff}
 .wrap{max-width:860px;margin:0 auto;padding:0 20px 70px;width:100%}
+.nav-wrap{padding-bottom:0}
 
 .nav{display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px;border-bottom:1px solid var(--border);margin-bottom:26px}
 .brand{font-weight:800;font-size:19px;letter-spacing:-.01em;text-decoration:none}
-.nav-right{display:flex;align-items:center;gap:16px}
-.nav-right a,.nav-right button{font-size:13.5px;color:var(--muted);text-decoration:none;background:none;border:0;cursor:pointer;font-family:inherit;padding:0}
-.nav-right a:hover,.nav-right button:hover{color:var(--ink)}
+.nav-right{display:flex;align-items:center;gap:6px}
+.nav-right a,.nav-right button,.lang-switch summary{font-size:13.5px;color:var(--muted);text-decoration:none;background:none;border:0;cursor:pointer;font-family:inherit;padding:7px 10px;border-radius:7px}
+.nav-right a:hover,.nav-right button:hover,.lang-switch summary:hover{color:var(--ink);background:var(--surface2)}
+.lang-switch{position:relative}
+.lang-switch summary{list-style:none;display:flex;align-items:center;gap:6px}
+.lang-switch summary::-webkit-details-marker{display:none}
+.lang-switch summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px}
+.lang-switch[open] summary{color:var(--ink);background:var(--surface2)}
+.lang-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:150px;padding:6px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);z-index:10}
+.lang-menu a{display:block;font-size:13px;color:var(--muted);text-decoration:none;padding:7px 9px;border-radius:6px;white-space:nowrap}
+.lang-menu a:hover{color:var(--ink);background:var(--surface2)}
+.lang-menu a[aria-current='true']{color:#fff;background:var(--accent)}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
@@ -124,17 +134,23 @@ a{color:inherit}
   </div>
 </div>
 
-<main class="wrap">
+<header class="wrap nav-wrap">
   <nav class="nav">
     <a class="brand" href="/"><img class="mark" src="/favicon.svg" alt="" width="26" height="26" style="border-radius:7px;box-shadow:var(--shadow-sm)" />Temp Mail</a>
     <div class="nav-right">
-      <a href="/">New Address</a>
+      <a href="/">Temp Mail</a>
+      <a href="/disposable-email">Disposable</a>
+      <a href="/blog">Blog</a>
+      <a href="/about">About</a>
+      <details class="lang-switch"><summary aria-label="Language">English</summary><nav class="lang-menu" aria-label="Language"><a href="/inbox" hreflang="en" aria-current='true'>English</a><a href="/de/inbox" hreflang="de">Deutsch</a><a href="/fr/inbox" hreflang="fr">Français</a><a href="/es/inbox" hreflang="es">Español</a><a href="/nl/inbox" hreflang="nl">Nederlands</a><a href="/it/inbox" hreflang="it">Italiano</a></nav></details>
       <span class="live"><span class="dot"></span>Live</span>
-      <a href="__API_BASE__/dashboard" id="dashLink" style="display:none">Dashboard</a>
+      <a href="#" data-dashboard-href="__API_BASE__/dashboard" id="dashLink" style="display:none">Dashboard</a>
       <button id="lockBtn" style="display:none">Lock</button>
     </div>
   </nav>
+</header>
 
+<main class="wrap">
   <div id="hasAddr" style="display:none">
     <section class="card addr-card">
       <div class="label">Active inbox address</div>
@@ -164,8 +180,12 @@ a{color:inherit}
     <a class="btn primary" href="/">Create an email address &rarr;</a>
   </section>
 
-  <p class="footer">Temp Mail — Free Temporary &amp; Disposable Email Service</p>
 </main>
+
+<footer class="wrap nav-wrap footer">
+  <nav><a href="/about">About</a><a href="/blog">Blog</a><a href="/temp-mail-for">Temp mail for apps</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/contact">Contact</a><a href="/disclaimer">Disclaimer</a></nav>
+  <span class="copy">Temp Mail — Free Temporary &amp; Disposable Email Service</span>
+</footer>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -332,7 +352,7 @@ async function startRealtime(){
 
 // ---- Owner mode ----
 function isOwnerMode(){return localStorage.getItem('ym_owner')==='yes';}
-function applyOwnerUI(){const own=isOwnerMode();const d=$('dashLink');if(d)d.style.display=own?'':'none';const lb=$('lockBtn');if(lb)lb.style.display=(own&&CONFIG.requirePin&&sessionUnlocked())?'':'none';}
+function applyOwnerUI(){const own=isOwnerMode();const d=$('dashLink');if(d){d.href=own?d.dataset.dashboardHref:'#';d.style.display=own?'':'none';}const lb=$('lockBtn');if(lb)lb.style.display=(own&&CONFIG.requirePin&&sessionUnlocked())?'':'none';}
 (function initOwner(){const brand=document.querySelector('.brand');let clicks=0,timer=null;if(brand){brand.addEventListener('click',e=>{clicks++;clearTimeout(timer);timer=setTimeout(()=>clicks=0,1500);if(clicks>=5){e.preventDefault();clicks=0;if(isOwnerMode()){if(confirm('Exit owner mode?')){localStorage.removeItem('ym_owner');applyOwnerUI();toast('Owner mode off');}}else{const pw=prompt('Owner password:');if(pw!==null)fetch('/api/admin/verify?pw='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(d&&d.ok){localStorage.setItem('ym_owner','yes');applyOwnerUI();toast('Owner mode on');}else toast('Wrong owner password');}).catch(()=>toast('Owner verification failed'));}}});}applyOwnerUI();})();
 
 // ---- Boot: runs after unlock ----

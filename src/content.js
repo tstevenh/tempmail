@@ -20,11 +20,17 @@ a{color:inherit}::selection{background:var(--accent);color:#fff}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.02em;text-decoration:none;color:var(--ink)}
 .brand .mark{width:26px;height:26px;border-radius:7px;box-shadow:var(--shadow-sm)}
 .nav-right{display:flex;align-items:center;gap:4px}
-.nav-right a{font-size:13.5px;font-weight:500;color:var(--muted);text-decoration:none;padding:7px 10px;border-radius:7px;transition:.15s}
-.nav-right a:hover{color:var(--ink);background:var(--surface)}
-.lang-switch{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:24px 0 0}
-.lang-switch a{font-size:12.5px;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:5px 9px;background:var(--surface)}
-.lang-switch a[aria-current='true']{color:#fff;background:var(--accent);border-color:var(--accent)}
+.nav-right a,.lang-switch summary{font-size:13.5px;font-weight:500;color:var(--muted);text-decoration:none;padding:7px 10px;border-radius:7px;transition:.15s}
+.nav-right a:hover,.lang-switch summary:hover{color:var(--ink);background:var(--surface)}
+.lang-switch{position:relative}
+.lang-switch summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px}
+.lang-switch summary::-webkit-details-marker{display:none}
+.lang-switch summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px}
+.lang-switch[open] summary{color:var(--ink);background:var(--surface)}
+.lang-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:150px;padding:6px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg)}
+.lang-menu a{display:block;font-size:13px;color:var(--muted);text-decoration:none;padding:7px 9px;border-radius:6px;white-space:nowrap}
+.lang-menu a:hover{color:var(--ink);background:var(--surface)}
+.lang-menu a[aria-current='true']{color:#fff;background:var(--accent)}
 main.page a.cta{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;background:var(--accent);color:#fff;font-weight:600;font-size:14px;padding:12px 20px;border-radius:9px;text-decoration:none;margin:8px 0 4px;box-shadow:0 4px 14px oklch(0.5 0.2 274/.3);transition:.15s}
 main.page a.cta:hover{background:var(--accent-hover)}
 main.page{max-width:720px;margin:0 auto;padding:48px 22px 64px}
@@ -39,6 +45,9 @@ main.page a{color:var(--accent-ink);text-decoration:none;font-weight:500;border-
 main.page a.cta{border-bottom:0}
 main.page a:hover{border-bottom-color:var(--accent)}
 main.page strong{color:var(--ink);font-weight:600}
+.breadcrumbs{font-size:12.5px;color:var(--soft);margin:-20px 0 22px}
+.breadcrumbs a{color:var(--muted);border-bottom:0}
+.breadcrumbs span{margin:0 6px}
 .posts{list-style:none;margin:20px 0 0;padding:0}
 .posts li{border-top:1px solid var(--border);padding:20px 0;transition:.15s}
 .posts a{font-weight:700;font-size:19px;text-decoration:none;letter-spacing:-.01em;border-bottom:0}
@@ -77,6 +86,15 @@ function breadcrumbSchema(rest,locale,title){
   items.push({"@type":"ListItem",position:pos,name:ldClean(title),item:u(rest)});
   return ldScript({"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:items});
 }
+function breadcrumbHtml(rest, locale, title) {
+  if (!rest || rest === "/" || rest === "/404") return "";
+  const ui = localeStrings(locale);
+  const items = [`<a href="${esc(localizedPath(locale, "/"))}">${esc(ui.nav.tempMail || "Temp Mail")}</a>`];
+  if (rest.startsWith("/blog/")) items.push(`<a href="${esc(localizedPath(locale, "/blog"))}">${esc(ui.nav.blog || "Blog")}</a>`);
+  else if (rest.startsWith("/temp-mail-for-")) items.push(`<a href="${esc(localizedPath(locale, "/temp-mail-for"))}">Temp mail for apps</a>`);
+  items.push(`<strong>${esc(title)}</strong>`);
+  return `<nav class="breadcrumbs" aria-label="Breadcrumb">${items.join("<span>/</span>")}</nav>`;
+}
 function articleSchema(rest,locale,title,desc,datePublished){
   const u="__SITE_URL__"+localizedPath(locale,rest);
   const d=datePublished||"2026-01-01";
@@ -84,9 +102,10 @@ function articleSchema(rest,locale,title,desc,datePublished){
 }
 
 function languageSwitcher(rest, locale) {
-  return `<nav class="lang-switch" aria-label="Language">${switcherItems(rest, locale).map((item) =>
-    `<a href="${esc(item.href)}" hreflang="${esc(LOCALE_HREFLANG[item.code] || item.code)}" aria-current="${item.current ? "true" : "false"}">${esc(item.label)}</a>`
-  ).join("")}</nav>`;
+  const current = switcherItems(rest, locale).find((item) => item.current) || { label: "Language" };
+  return `<details class="lang-switch"><summary aria-label="Language">${esc(current.label)}</summary><nav class="lang-menu" aria-label="Language">${switcherItems(rest, locale).map((item) =>
+    `<a href="${esc(item.href)}" hreflang="${esc(LOCALE_HREFLANG[item.code] || item.code)}"${item.current ? " aria-current='true'" : ""}>${esc(item.label)}</a>`
+  ).join("")}</nav></details>`;
 }
 
 // Full-page HTML template. `path` is the concrete URL path for canonical/OG.
@@ -132,11 +151,12 @@ __ADSENSE_HEAD__
   <a class="brand" href="${esc(home)}"><img class="mark" src="/favicon.svg" alt="" width="26" height="26" />Temp Mail</a>
   <nav class="nav-right">
     <a href="${esc(localizedPath(locale, "/"))}">${esc(ui.nav.tempMail)}</a><a href="${esc(localizedPath(locale, "/disposable-email"))}">${esc(ui.nav.disposable)}</a><a href="${esc(localizedPath(locale, "/blog"))}">${esc(ui.nav.blog)}</a><a href="${esc(localizedPath(locale, "/about"))}">${esc(ui.nav.about)}</a>
+    ${languageSwitcher(rest || path || "/", locale)}
   </nav>
 </div></div></header>
 <main class="page">
+${breadcrumbHtml(rest || path || "/", locale, title)}
 ${bodyHtml}
-${languageSwitcher(rest || path || "/", locale)}
 </main>
 <footer class="footer">
   <nav><a href="${esc(localizedPath(locale, "/about"))}">${esc(ui.footer.about)}</a><a href="${esc(localizedPath(locale, "/blog"))}">${esc(ui.footer.blog)}</a><a href="${esc(localizedPath(locale, "/temp-mail-for"))}">Temp mail for apps</a><a href="${esc(localizedPath(locale, "/privacy"))}">${esc(ui.footer.privacy)}</a><a href="${esc(localizedPath(locale, "/terms"))}">${esc(ui.footer.terms)}</a><a href="${esc(localizedPath(locale, "/contact"))}">${esc(ui.footer.contact)}</a><a href="${esc(localizedPath(locale, "/disclaimer"))}">${esc(ui.footer.disclaimer)}</a></nav>
@@ -150,6 +170,9 @@ ${languageSwitcher(rest || path || "/", locale)}
 </html>`.replace(/__HREFLANG_LINKS__/g, hreflangLinks(rest || path || "/", "__SITE_URL__"));
 }
 
+function ctaFor(locale) {
+  return `<a class="cta" href="${esc(localizedPath(locale, "/"))}">${localeStrings(locale).cta}</a>`;
+}
 const CTA = `<a class="cta" href="/">→ Get your free temp mail address</a>`;
 const AD = `<div class="ad-slot"></div>`;
 
@@ -356,11 +379,14 @@ export function blogPostPage(post, opts = {}) {
   const locale = opts.locale || "en";
   const rest = `/blog/${post.slug}`;
   const date = post.date ? `<p class="meta">${esc(String(post.date).slice(0,10))}</p>` : "";
+  const related = (opts.posts || []).filter((p) => p.slug && p.slug !== post.slug).slice(0, 3);
+  const relatedBlock = related.length ? `<h2>${esc(locale === "de" ? "Verwandte Beiträge" : locale === "fr" ? "Articles liés" : locale === "es" ? "Artículos relacionados" : locale === "nl" ? "Gerelateerde artikelen" : locale === "it" ? "Articoli correlati" : "Related posts")}</h2><ul>${related.map((p) => `<li><a href="${esc(localizedPath(locale, `/blog/${p.slug}`))}">${esc(p.title)}</a></li>`).join("")}</ul>` : "";
   const body = `<h1>${esc(post.h1 || post.title)}</h1>
 ${date}
 ${AD}
 ${post.bodyHtml || ""}
-${CTA}`;
+${relatedBlock}
+${ctaFor(locale)}`;
   return layout({ path: localizedPath(locale, rest), rest, locale, title: post.title, desc: post.desc || "", bodyHtml: body, type: "blog", datePublished: post.date });
 }
 
