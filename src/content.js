@@ -284,9 +284,16 @@ ${CTA}` },
     title: "Contact — Temp Mail",
     desc: "Contact the Temp Mail team with questions, feedback, or abuse reports about our free temporary email service.",
     body: `<h1>Contact</h1>
-<p class="lead">We'd love to hear from you.</p>
-<p>For questions, feedback, partnership enquiries, or abuse reports, email us at <a href="mailto:hello@example.com">hello@example.com</a> (replace with your real address before launch).</p>
-<p>For privacy-related requests, please see our <a href="/privacy">privacy policy</a>.</p>` },
+<p class="lead">We'd love to hear from you — questions, feedback, and reports are all welcome.</p>
+<p>Temp Mail is a free temporary email service, and we keep it simple, fast, and private. If something isn't working, you have an idea to improve it, or you'd like to get in touch about a partnership, the fastest way to reach us is by email.</p>
+<h2>Email us</h2>
+<p>For general questions, feedback, feature requests, partnership enquiries, or abuse reports, email <a href="mailto:hello@example.com">hello@example.com</a> (replace this with your real address before launch). We read every message and aim to reply within a few business days.</p>
+<h2>Reporting abuse</h2>
+<p>Temp Mail is meant for privacy and convenience — receiving verification codes, avoiding spam, and one-off sign-ups. It is not for fraud, harassment, or anything illegal. If you believe an address on our service is being misused, email us with the details and we'll look into it.</p>
+<h2>Privacy &amp; data requests</h2>
+<p>For anything related to data or privacy — including how disposable inboxes are stored and cleared — please read our <a href="/privacy">privacy policy</a> first, as it answers most questions. If you still need help, email us and we'll respond.</p>
+<h2>Before you write</h2>
+<p>Many common questions are already answered on the home page and in our <a href="/blog">blog</a> and <a href="/about">about</a> pages — for example how long an inbox lasts, whether you can receive OTP codes, and why a site might reject a disposable address. A quick look there is often the fastest answer.</p>` },
 
   "/disclaimer": {
     title: "Disclaimer — Temp Mail",

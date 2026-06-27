@@ -1018,16 +1018,59 @@ ${extraDepth(locale)}
 ${extraDepth(locale)}`;
 }
 
+// Localized blog titles per locale (used for <title>, <h1>, and meta description).
+const BLOG_TITLE = {
+  de: {
+    "best-temp-mail": "Beste temporäre E-Mail-Dienste",
+    "is-temp-mail-safe": "Ist Temp Mail sicher?",
+    "how-to-create-a-temporary-email": "Temporäre E-Mail erstellen",
+    "what-is-a-disposable-email-address": "Was ist eine Wegwerf-E-Mail?",
+    "temp-mail-for-otp-verification-codes": "OTP- und Verifizierungscodes mit Temp Mail empfangen",
+  },
+  fr: {
+    "best-temp-mail": "Meilleurs services de temp mail",
+    "is-temp-mail-safe": "Le temp mail est-il sûr ?",
+    "how-to-create-a-temporary-email": "Comment créer une adresse email temporaire",
+    "what-is-a-disposable-email-address": "Qu’est-ce qu’une adresse email jetable ?",
+    "temp-mail-for-otp-verification-codes": "Recevoir des codes OTP et de vérification avec le temp mail",
+  },
+  es: {
+    "best-temp-mail": "Mejores servicios de correo temporal",
+    "is-temp-mail-safe": "¿Es seguro el correo temporal?",
+    "how-to-create-a-temporary-email": "Cómo crear un correo temporal",
+    "what-is-a-disposable-email-address": "¿Qué es un correo desechable?",
+    "temp-mail-for-otp-verification-codes": "Recibir códigos OTP y de verificación con correo temporal",
+  },
+  nl: {
+    "best-temp-mail": "Beste tijdelijke e-maildiensten",
+    "is-temp-mail-safe": "Is tijdelijke e-mail veilig?",
+    "how-to-create-a-temporary-email": "Een tijdelijk e-mailadres maken",
+    "what-is-a-disposable-email-address": "Wat is een wegwerp-e-mailadres?",
+    "temp-mail-for-otp-verification-codes": "OTP- en verificatiecodes ontvangen met tijdelijke e-mail",
+  },
+  it: {
+    "best-temp-mail": "Migliori servizi di email temporanea",
+    "is-temp-mail-safe": "L’email temporanea è sicura?",
+    "how-to-create-a-temporary-email": "Come creare un’email temporanea",
+    "what-is-a-disposable-email-address": "Cos’è un’email usa e getta?",
+    "temp-mail-for-otp-verification-codes": "Ricevere codici OTP e di verifica con l’email temporanea",
+  },
+};
+
 export function localizedBlogPosts(locale) {
   if (!LANG[locale]) return [];
-  return Object.entries(BLOG).map(([slug, names]) => ({
-    slug,
-    title: `${names[0]} — Temp Mail`,
-    h1: names[0],
-    desc: `${names[0]} erklärt in klarer Sprache, wie Sie ${LANG[locale].temp} sinnvoll, sicher und ohne Registrierung verwenden.`,
-    bodyHtml: blogBody(locale, slug),
-    date: "2026-01-01T00:00:00.000Z",
-  }));
+  const tmap = BLOG_TITLE[locale] || {};
+  return Object.entries(BLOG).map(([slug, names]) => {
+    const title = tmap[slug] || names[0];
+    return {
+      slug,
+      title: `${title} — Temp Mail`,
+      h1: title,
+      desc: `${title}. ${LANG[locale].seo}`,
+      bodyHtml: blogBody(locale, slug),
+      date: "2026-01-01T00:00:00.000Z",
+    };
+  });
 }
 
 export function localizedBlogPost(locale, slug) {

@@ -883,11 +883,11 @@ export default {
           .flatMap((loc) => PLATFORM_LANDING_PATHS.map((p) => localizedPath(loc, p)))
           .filter((p) => LANDING_PAGES[p]);
         // Localized pages × live locales, plus platform pages for locales whose content exists.
-        const urls = [
+        const urls = [...new Set([
           ...LIVE_LOCALES.flatMap((loc) => [...localizedPaths, ...slugs.map((s) => `/blog/${s}`)].map((p) => localizedPath(loc, p))),
           ...PLATFORM_LANDING_PATHS,
           ...localizedPlatformUrls,
-        ];
+        ])];
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
           urls.map((p) => `  <url><loc>${seoBase}${p}</loc></url>`).join("\n") + `\n</urlset>\n`;
         return new Response(xml, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" } });
