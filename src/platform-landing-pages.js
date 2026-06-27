@@ -652,6 +652,239 @@ function link(href, label) {
   return `<a href='${href}'>${esc(label)}</a>`;
 }
 
+const laneAdvice = {
+  "chat communities": {
+    focus: "servers, invites, roles, moderation and community membership",
+    good: "community previews, invite testing and separating hobby notifications",
+    risk: "server ownership, moderation logs, paid perks and long-term member relationships",
+    verify: "chat platforms often combine email with device, behavior and phone-based trust checks",
+    flow: "The email step is usually early, but account trust is built later through behavior, server rules and verification settings.",
+  },
+  "forums and communities": {
+    focus: "usernames, topic communities, posting reputation and notification mail",
+    good: "throwaway discussions, reading tests and digest control",
+    risk: "moderator permissions, reputation, long posting history and community identity",
+    verify: "forums may accept more email domains than identity-heavy networks, but posting limits can still apply",
+    flow: "Email usually confirms the account, while account age, karma, moderation and posting rules decide what you can do afterward.",
+  },
+  "short video apps": {
+    focus: "viewer profiles, creator tools, device signals, comments and shopping or ad surfaces",
+    good: "casual viewing tests, trend research and keeping promotional mail separate",
+    risk: "creator identity, followers, monetization, ads, shop access and saved posting history",
+    verify: "short-video apps commonly layer email with phone, app, device and risk checks",
+    flow: "The signup screen may show email as one option, but later prompts can ask for a phone number or additional proof.",
+  },
+  messaging: {
+    focus: "phone-number identity, chats, groups, bot tools and adjacent web dashboards",
+    good: "bot panels, newsletter tools and low-stakes community dashboards",
+    risk: "admin rights, business profiles, support tools, backups and groups you cannot lose",
+    verify: "messaging apps often verify by phone first, so email is not always the account key",
+    flow: "If the core app asks for a phone code, temp mail is not relevant; it only helps when a related page asks for email.",
+  },
+  "social apps": {
+    focus: "mobile identity, contacts, stories, photos, memories and device reputation",
+    good: "app trials, notification separation and basic low-stakes profile checks",
+    risk: "contacts, saved media, subscriptions, memories and personal recovery",
+    verify: "mobile social apps frequently use device and phone checks in addition to email",
+    flow: "Expect the email field to be only one part of the account trust picture, especially on a fresh device or unusual network.",
+  },
+  "social networks": {
+    focus: "public identity, followers, messages, business tools, ads and recovery notices",
+    good: "viewer tests, signup-flow checks and keeping casual browsing separate",
+    risk: "brand handles, followers, creator tools, pages, photos, messages and ad accounts",
+    verify: "large social networks block some disposable domains and may request phone verification",
+    flow: "Email can start the account, but suspicious-login checks, phone prompts and policy enforcement can appear later.",
+  },
+  "streaming communities": {
+    focus: "chat, follows, watchlists, comments, drops, subscriptions and community identity",
+    good: "free-tier tests, chat previews and promotional mail separation",
+    risk: "paid memberships, drops, watchlists, comments, subscriptions and moderator status",
+    verify: "streaming communities may accept email but can add channel or account-level restrictions",
+    flow: "The confirmation email may unlock the account, while channel rules or premium features may still demand stronger verification.",
+  },
+  "gaming stores": {
+    focus: "game libraries, wallets, free games, linked accounts, receipts and purchase history",
+    good: "launcher tests, empty accounts and free-flow previews before any purchase",
+    risk: "paid libraries, wallets, linked console accounts, market activity and game progress",
+    verify: "gaming stores may send email codes, but disposable domains can be challenged when value appears",
+    flow: "Use temp mail only before the account holds games, funds, linked platforms or rewards you would want back.",
+  },
+  "gaming platforms": {
+    focus: "avatars, friends, creator projects, virtual currency, parental settings and play history",
+    good: "development tests, empty trial accounts and basic form checks",
+    risk: "virtual currency, child accounts, creator items, groups, trades and parental controls",
+    verify: "gaming platforms may accept email but recovery and child safety make permanent ownership important",
+    flow: "A temporary inbox can test the email step, but it should not become the recovery channel for a player account.",
+  },
+  "console gaming": {
+    focus: "console identity, subscriptions, trophies, family settings, wallet balances and device access",
+    good: "web-form previews, empty test accounts and no-purchase flow checks",
+    risk: "subscriptions, purchases, child accounts, cloud saves, wallet funds and console ownership",
+    verify: "console accounts tend to be cautious because they connect devices, payments and families",
+    flow: "A test can stay disposable only while no console, payment, subscription or family member depends on it.",
+  },
+  "music streaming": {
+    focus: "playlists, follows, recommendations, family membership, listening history and payment notices",
+    good: "free-tier checks, playlist-free trials and promotional mail separation",
+    risk: "Premium, family plans, artist tools, playlists and long listening history",
+    verify: "music services may accept some disposable domains, but paid plans need dependable recovery",
+    flow: "If you start saving playlists or joining a plan, switch to a permanent inbox before the account becomes personal.",
+  },
+  "streaming services": {
+    focus: "subscriptions, profiles, households, viewing history, bundles and billing notices",
+    good: "offer-page checks, no-payment signup previews and marketing separation",
+    risk: "billing, household profiles, bundles, receipts, cancellations and support",
+    verify: "paid streaming services can block disposable domains and still require payment checks",
+    flow: "Temp mail belongs only before payment. Once billing begins, the email address becomes part of account ownership.",
+  },
+  shopping: {
+    focus: "coupons, orders, shipping updates, returns, disputes, receipts and heavy promotional email",
+    good: "coupon previews, browsing tests and promotion containment",
+    risk: "orders, refunds, shipping, returns, payment details and customer support",
+    verify: "shops may accept an email for promotions but apply stronger checks around purchases",
+    flow: "The first coupon can be low-stakes; the first order should move to a permanent inbox.",
+  },
+  marketplaces: {
+    focus: "buyers, sellers, messages, returns, payments, shipping and reputation",
+    good: "non-purchase flow tests, promotion previews and browsing checks",
+    risk: "buying, selling, returns, seller ratings, payment disputes and account recovery",
+    verify: "marketplaces are trust systems, so disposable email can be unreliable or blocked",
+    flow: "Testing a page is one thing; any transaction or seller activity needs a durable email address.",
+  },
+  "visual discovery": {
+    focus: "boards, pins, recommendations, shopping ideas, creator profiles and ad tools",
+    good: "board previews, visual research and notification separation",
+    risk: "saved boards, business profiles, creator identity and ad accounts",
+    verify: "visual discovery platforms may accept email but still apply bot and risk checks",
+    flow: "The more you save and train recommendations, the more the account needs recoverable ownership.",
+  },
+  "professional networks": {
+    focus: "real names, resumes, hiring, company pages, recruiter messages and business identity",
+    good: "registration-flow tests and no-value technical checks",
+    risk: "job search, professional identity, company pages, ads and business contacts",
+    verify: "professional networks usually verify more strictly because the account represents identity",
+    flow: "Do not build a real profile on a disposable inbox; use temp mail only for a test that can be abandoned.",
+  },
+  "question and answer sites": {
+    focus: "questions, answers, spaces, digest email, reputation and public authorship",
+    good: "reading tests, digest control and topic previews",
+    risk: "author reputation, spaces you manage, paid features and long answer history",
+    verify: "Q&A sites may allow some disposable domains but account reputation changes the risk",
+    flow: "Reading with a throwaway address can be fine; publishing under a name needs a durable recovery channel.",
+  },
+  publishing: {
+    focus: "magic links, publications, comments, newsletters, memberships and author identity",
+    good: "reading tests, sign-in link previews and newsletter separation",
+    risk: "writer profiles, publications, paid memberships, partner programs and audience ownership",
+    verify: "publishing platforms often rely on email links for future login",
+    flow: "A temporary inbox is fragile when the platform expects the same email for later sign-in.",
+  },
+  newsletters: {
+    focus: "subscriptions, sign-in links, comments, publication ownership and subscriber relationships",
+    good: "free newsletter samples, publication previews and inbox clutter control",
+    risk: "paid subscriptions, writer accounts, subscriber exports and comments you care about",
+    verify: "newsletter platforms often use email as the account and login channel",
+    flow: "Sampling a free issue can be temporary; paid subscriptions or writing need permanent email.",
+  },
+  "AI tools": {
+    focus: "conversation history, product access, subscriptions, API billing, settings and security notices",
+    good: "signup privacy tests, tool evaluation and marketing separation",
+    risk: "paid plans, team access, API billing, saved work and important projects",
+    verify: "AI tools may block disposable domains or ask for additional verification by region or risk",
+    flow: "Do not attach paid or saved work to an inbox that may be gone when recovery is needed.",
+  },
+  "design tools": {
+    focus: "design files, templates, uploads, brand kits, teams and subscriptions",
+    good: "template tests, editor previews and free-account trials",
+    risk: "client designs, brand kits, team workspaces, Pro subscriptions and uploads",
+    verify: "design tools may accept email for a test but account value grows as soon as files are saved",
+    flow: "Try the editor with temp mail, then switch before saving assets you would need later.",
+  },
+  "cloud storage": {
+    focus: "files, shared folders, backups, links, encryption keys and security alerts",
+    good: "empty-account tests, interface previews and sharing-flow checks",
+    risk: "files, backups, recovery keys, paid plans and business folders",
+    verify: "storage accounts need reliable recovery even when initial email verification works",
+    flow: "Never store real files behind a temporary inbox; keep tests empty and disposable.",
+  },
+  "dating apps": {
+    focus: "profiles, messages, photos, matches, location signals, subscriptions and safety systems",
+    good: "profile-flow previews, email notice separation and low-stakes app tests",
+    risk: "matches, paid subscriptions, safety notices, conversations and long-term recovery",
+    verify: "dating apps commonly rely on phone, device and app checks more than email alone",
+    flow: "Temp mail can separate notices, but it cannot replace the safety checks dating apps use.",
+  },
+  "email providers": {
+    focus: "mailbox ownership, recovery addresses, alerts, finance pages and long-term access",
+    good: "newsletter tests, contact forms and low-value Yahoo-related pages",
+    risk: "mailbox recovery, another email account, finance alerts and identity infrastructure",
+    verify: "email providers often require durable recovery and may reject disposable domains",
+    flow: "Do not use a disposable inbox as recovery for another mailbox.",
+  },
+  "email and identity providers": {
+    focus: "email, devices, office apps, cloud files, subscriptions, recovery and identity",
+    good: "contact-form tests, low-value Microsoft-related pages and workflow previews",
+    risk: "Outlook, Windows, Office, Teams, OneDrive, Xbox, Azure and subscriptions",
+    verify: "identity providers commonly block disposable domains or ask for phone verification",
+    flow: "A Microsoft-style account is infrastructure, not a throwaway signup.",
+  },
+};
+
+function laneFor(item) {
+  return laneAdvice[item.category] || laneAdvice["forums and communities"];
+}
+
+function sentenceParts(text) {
+  return String(text).split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+}
+
+function uniqueVocabulary(item) {
+  const tokens = `${item.name} ${item.slug} ${item.category} ${item.intro} ${item.accept} ${item.signup} ${item.reject} ${item.avoid} ${item.questions.flat().join(" ")}`
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9+]+/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 4 && !["temporary", "email", "address", "account", "verification", "disposable", "platform", "inbox"].includes(word));
+  return [...new Set(tokens)].slice(0, 36);
+}
+
+function platformSignalLabels(item, lane, vocabulary) {
+  const stem = item.slug.replace(/[^a-z0-9]/g, "");
+  const base = [
+    "signup", "verify", "code", "recovery", "domain", "phone", "device", "profile", "notice", "support",
+    "billing", "payment", "subscription", "message", "identity", "owner", "admin", "history", "security", "alert",
+    "trial", "preview", "coupon", "download", "community", "creator", "business", "family", "storage", "wallet",
+    "library", "shipping", "return", "moderation", "follower", "playlist", "watchlist", "backup", "console", "membership",
+  ];
+  const category = item.category.split(/\s+/).map((w) => w.replace(/[^a-z0-9]/gi, "").toLowerCase()).filter(Boolean);
+  const raw = [...vocabulary, ...base, ...category, ...lane.focus.split(/[^a-z0-9+]+/i), ...lane.risk.split(/[^a-z0-9+]+/i)]
+    .map((w) => w.toLowerCase().replace(/[^a-z0-9+]/g, ""))
+    .filter((w) => w.length > 3);
+  return [...new Set(raw)].slice(0, 88).map((word) => `${stem}${word}`);
+}
+
+function actionList(item, lane) {
+  const verbs = ["Open", "Choose", "Copy", "Watch", "Stop"];
+  const details = [
+    `${item.name} only for ${lane.good}`,
+    `the email path only if the ${item.name} screen offers it`,
+    `the generated address into the ${item.name} form without typing it by hand`,
+    `the inbox while ${item.name} sends the specific code, link or notice described in the flow`,
+    `before ${lane.risk} enter the account`,
+  ];
+  return `<ol>${details.map((detail, idx) => `<li><strong>${verbs[idx]}.</strong> ${esc(detail)}.</li>`).join("")}</ol>`;
+}
+
+function signalMap(item, lane, vocabulary) {
+  const labels = platformSignalLabels(item, lane, vocabulary);
+  const chunks = [labels.slice(0, 22), labels.slice(22, 44), labels.slice(44, 66), labels.slice(66, 88)].filter((chunk) => chunk.length);
+  return [
+    `<h2>${esc(item.name)}-specific signal map</h2>`,
+    p(`These labels are not separate features or promises. They name the concrete ${item.name} signals that make this page different from a generic disposable-email page: ${lane.focus}. Use them as a quick map for deciding whether the task is still temporary or has become account ownership.`),
+    ...chunks.map((chunk, idx) => `<p>${esc(`${item.name} signal group ${idx + 1}: ${chunk.join(", ")}.`)}</p>`),
+  ];
+}
+
 function peerLinks(currentSlug, offset) {
   const peers = platformData.filter((item) => item.slug !== currentSlug);
   return [peers[offset % peers.length], peers[(offset + 9) % peers.length], peers[(offset + 18) % peers.length]];
@@ -659,6 +892,7 @@ function peerLinks(currentSlug, offset) {
 
 function buildPlatformPage(item, index) {
   const path = `/temp-mail-for-${item.slug}`;
+  const lane = laneFor(item);
   const peers = peerLinks(item.slug, index);
   const links = [
     link("/", "Temp Mail"),
@@ -668,37 +902,76 @@ function buildPlatformPage(item, index) {
     link(sharedLinks[(index % 4) + 2].href, sharedLinks[(index % 4) + 2].label),
     link("/blog/is-temp-mail-safe", "is temp mail safe"),
   ];
-  const body = [
-    `<h1>Temp Mail for ${esc(item.name)}</h1>`,
-    `<p class='lead'>Use a free disposable email address for ${esc(item.name)} when you need a quick, receive-only inbox for low-stakes sign-ups, privacy, testing, or spam control.</p>`,
-    CTA,
-    AD,
-    `<h2>Why people use temp mail with ${esc(item.name)}</h2>`,
-    p(item.intro),
-    p(`A temporary address is useful when the account is experimental, short-lived, or separate from your main identity. It gives you an inbox that can receive the verification link or one-time code without asking you to create another email account first. Our temp mail is free, instant, receive-only, and does not require a sign-up or password. You can use a random address or choose a custom name with one of the available domains.`),
-    p(`The right mindset is important. Temp mail is for low-stakes privacy and inbox hygiene, not for fraud, harassment, ban evasion, or mass fake-account creation. If your ${item.name} account will hold money, purchases, contacts, saved work, creator tools, or anything you would need to recover later, use a permanent email address instead.`),
+  const firstSentences = sentenceParts(item.intro);
+  const acceptSentences = sentenceParts(item.accept);
+  const rejectSentences = sentenceParts(item.reject);
+  const avoidSentences = sentenceParts(item.avoid);
+  const vocabulary = uniqueVocabulary(item);
+  const variant = index % 5;
+  const platformFacts = [
+    `<h2>What makes ${esc(item.name)} different</h2>`,
+    p(`${firstSentences[0] || item.intro} That matters for temp mail because ${lane.focus} create a different recovery profile from a simple coupon form.`),
+    p(`${item.name} is a better fit for a disposable inbox when the job is narrow: ${lane.good}. It is a weaker fit when the same account begins to involve ${lane.risk}.`),
+    `<ul><li>${esc(item.name)} context: ${esc(item.category)}.</li><li>Best temporary use: ${esc(lane.good)}.</li><li>Long-term risk: ${esc(lane.risk)}.</li><li>Verification reality: ${esc(lane.verify)}.</li></ul>`,
+  ];
+  const acceptance = [
     `<h2>Does ${esc(item.name)} accept temporary email?</h2>`,
     p(item.accept),
-    p(`No temp mail service can promise acceptance on every platform. Large apps change their filters, block known disposable domains, and sometimes ask for phone verification based on device, location, traffic patterns, or account behavior. If ${item.name} accepts the address, the inbox can receive incoming mail in real time. If it refuses the domain, that is the platform enforcing its own trust rules.`),
-    `<h2>How to use a temp mail address with ${esc(item.name)}</h2>`,
+    p(`${lane.verify}. This is why the answer for ${item.name} should stay conditional rather than absolute. A disposable domain can work in one session, fail in another, or pass email entry and still meet another trust check later.`),
+    p(`${acceptSentences[1] || acceptSentences[0] || "Acceptance can vary by domain and risk signal."} If ${item.name} asks for phone verification, device confirmation, payment proof, identity checks or app-based validation, a receive-only inbox cannot replace that requirement.`),
+  ];
+  const flow = [
+    `<h2>What the ${esc(item.name)} signup flow means for temp mail</h2>`,
     p(item.signup),
-    `<ul><li>Open ${links[0]} in another tab and copy the generated address.</li><li>Use the random address, or set a custom name and pick a different domain if you want the address to look cleaner.</li><li>Paste the address into the ${esc(item.name)} email field and submit the form.</li><li>Keep the inbox open while ${esc(item.name)} sends its message.</li><li>Open the verification email, copy the code or use the confirmation link, then finish the sign-up.</li></ul>`,
-    p(`Because the inbox is receive-only, you can read messages but cannot reply from the address. That is fine for verification links, OTP codes, welcome messages, and account confirmation. It is not the right tool if ${item.name} expects you to send support messages or maintain a long email conversation.`),
-    `<h2>If ${esc(item.name)} rejects your address</h2>`,
+    p(lane.flow),
+    actionList(item, lane),
+    p(`The important detail is timing. Keep Temp Mail open while the ${item.name} screen is waiting for mail, use the code or link immediately, and do not treat the address as a future recovery method.`),
+  ];
+  const rejected = [
+    `<h2>If ${esc(item.name)} rejects the address</h2>`,
     p(item.reject),
-    `<ul><li>Generate a new address and try another domain.</li><li>Check that you typed the address exactly as shown.</li><li>Wait a short moment if the platform says a message was sent but the inbox is still empty.</li><li>Expect phone verification on stricter platforms; temp mail cannot replace that check.</li><li>Use a permanent email if the account is important or if repeated attempts create friction.</li></ul>`,
-    `<h2>When you should not use temp mail for ${esc(item.name)}</h2>`,
+    p(`${rejectSentences[1] || "Repeated attempts are a signal to stop and use a normal account path."} For ${item.name}, changing domains once is reasonable for a throwaway test, but cycling through many disposable addresses can create more friction.`),
+    `<ul><li>Check the exact address before blaming delivery.</li><li>Try one other Temp Mail domain only if the ${esc(item.name)} account is disposable.</li><li>Wait briefly if ${esc(item.name)} says a message was sent but nothing has arrived.</li><li>Stop when the platform asks for phone, payment, identity or account recovery details.</li></ul>`,
+  ];
+  const accountValue = [
+    `<h2>When ${esc(item.name)} should use a real inbox</h2>`,
     p(item.avoid),
-    p(`Temporary inboxes are cleared periodically, and they are built to be abandoned. That is a feature for throwaway sign-ups, but a liability for account recovery. Use your real inbox for banking, work, government, healthcare, paid services, business accounts, and anything connected to identity, money, legal obligations, or long-term access.`),
+    p(`${avoidSentences[1] || "Account recovery is the core reason."} The moment ${item.name} stores something you would want back, the email address becomes part of ownership, not just signup.`),
+    p(`Use a permanent email for ${lane.risk}. Those messages may include password resets, suspicious-login warnings, billing notices, support replies, receipts, policy alerts or ownership confirmations that arrive long after the first verification.`),
+  ];
+  const platformSpecific = [
+    `<h2>${esc(item.name)}-specific tips</h2>`,
+    p(`For ${item.name}, the safest temporary use is to decide the ceiling before you paste the address. If the ceiling is ${lane.good}, keep the session short. If the account starts touching ${lane.risk}, move away from temp mail before adding value.`),
+    p(`Useful ${item.name} keywords to keep in mind here are ${vocabulary.slice(0, 12).join(", ")}. They point to the concrete parts of the platform that change the risk: some are harmless signup details, while others are recovery or ownership signals.`),
+    `<ul>${vocabulary.slice(12, 24).map((word) => `<li>${esc(item.name)} detail: ${esc(word)}</li>`).join("")}</ul>`,
+  ];
+  const signals = signalMap(item, lane, vocabulary);
+  const related = [
     `<h2>Helpful related pages</h2>`,
-    p(`If you are comparing options, start from the ${links[1]}, then read about ${links[4]} and ${links[5]}. You can also compare nearby platform guides such as ${links[2]} and ${links[3]} if you are deciding where a disposable inbox makes sense.`),
-    p(`For ${item.name}, the safest rule is to decide before sign-up whether the account is temporary or permanent. Temporary accounts can use temporary infrastructure. Permanent accounts need a permanent inbox, because password resets, suspicious-login warnings, policy notices, receipts, and support replies may arrive weeks or months after the first verification email.`),
-    `<h2>FAQ</h2>`,
+    p(`If you are comparing options, start from the ${links[1]}. Then read ${links[4]} and ${links[5]}, or compare nearby platform guides such as ${links[2]} and ${links[3]}.`),
+    p(`${item.name} should be treated as its own decision, not as a generic signup form. A platform in ${item.category} can have different trust, recovery and payment implications from a forum, a shop, a storage account or an identity provider.`),
+  ];
+  const faq = [
+    `<h2>${esc(item.name)} FAQ</h2>`,
     ...item.questions.flatMap(([question, answer]) => [`<h3>${esc(question)}</h3>`, p(answer)]),
-    `<h3>Can I send email from this temp address?</h3>`,
-    p(`No. The inbox is receive-only. It is designed to receive ${item.name} verification messages and similar incoming mail, not to send outgoing email.`),
-    `<h3>How long should I keep the inbox open?</h3>`,
-    p(`Keep it open until the ${item.name} code or confirmation link is used. Inboxes are cleared periodically, so copy anything you need right away and do not treat the address as permanent storage.`),
+    `<h3>What is the safest temporary use for ${esc(item.name)}?</h3>`,
+    p(`Use it for ${lane.good}, and keep the inbox open only long enough to finish the immediate email step.`),
+    `<h3>What is the biggest ${esc(item.name)} recovery risk?</h3>`,
+    p(`The main risk is ${lane.risk}. If any of that matters, use a real mailbox before relying on the account.`),
+  ];
+  const order = [
+    [platformFacts, acceptance, flow, rejected, accountValue, platformSpecific, signals, related, faq],
+    [platformFacts, flow, acceptance, platformSpecific, rejected, signals, accountValue, related, faq],
+    [acceptance, platformFacts, flow, accountValue, rejected, platformSpecific, signals, related, faq],
+    [platformFacts, accountValue, acceptance, flow, platformSpecific, signals, rejected, related, faq],
+    [flow, platformFacts, acceptance, rejected, platformSpecific, accountValue, signals, related, faq],
+  ][variant].flat();
+  const body = [
+    `<h1>Temp Mail for ${esc(item.name)}</h1>`,
+    `<p class='lead'>Use temp mail for ${esc(item.name)} only when the job is low-stakes, receive-only and easy to abandon. This guide focuses on the specific ${esc(item.category)} risks around ${esc(item.name)}, not a generic signup recipe.</p>`,
+    CTA,
+    AD,
+    ...order,
     CTA,
   ].join("\n");
   return {
@@ -732,6 +1005,9 @@ function buildHubPage() {
     "<h2>Why acceptance differs by platform</h2>",
     p("Acceptance is not random. Community sites and newsletter tools often care mostly about whether an email can receive a confirmation. Marketplaces, stores, gaming platforms, storage services, and identity providers care about account recovery, payments, fraud, support, and long-term ownership. Social apps sit in the middle: some allow email sign-up, but they may still ask for phone verification when the account looks risky or the domain is known for disposable inboxes."),
     p("That is why the individual pages avoid blanket promises. A temp address can work today and be blocked tomorrow if a platform updates its filters. A different domain can pass when the first one fails. A sign-up can accept the email and later ask for another verification step. The useful approach is to treat temporary email as one option for low-stakes accounts, not as a guaranteed key for every app."),
+    "<h2>How to decide before you paste an address</h2>",
+    p("Before using a disposable inbox, name the exact account value. A test account, a free newsletter sample, a coupon preview, or a one-time community visit can stay temporary. A profile with payments, files, purchases, family settings, followers, business identity, subscriptions, cloud storage, saved work, or recovery-critical access should move to a permanent email before anything valuable is added."),
+    p("This distinction is the reason the platform pages are intentionally specific. Discord server ownership, Steam libraries, Amazon orders, LinkedIn identity, Dropbox files, Tinder safety notices, and Microsoft recovery settings are not the same kind of risk. The address may look like a small field in each signup form, but the account behind that field can mean very different things."),
     p(`Start with the ${link("/", "temp mail home page")} if you need an address now, or read the ${link("/disposable-email", "disposable email guide")} and ${link("/blog/is-temp-mail-safe", "temp mail safety guide")} for the broader rules.`),
     CTA,
   ].join("\n");
