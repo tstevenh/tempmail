@@ -793,6 +793,9 @@ function localizedPlatformHub(locale, t) {
     platformP(t.hubBody[1]),
     platformP(t.hubBody[2]),
     platformP(t.hubBody[3]),
+    platformP(t.hubBody[4]),
+    platformP(t.hubBody[5]),
+    platformP(t.hubBody[6]),
     platformCta(locale, t),
   ].join("\n");
   return { title: t.hubTitle, desc: t.hubDesc, body };
@@ -802,6 +805,13 @@ function localizedPlatformPage(locale, item, index, t) {
   const name = item.name;
   const category = t.category[item.category] || item.category;
   const tone = PLATFORM_TONE[locale] || PLATFORM_TONE.de;
+  const questionsTitle = {
+    de: `${name}-spezifische Fragen`,
+    fr: `Questions propres à ${name}`,
+    es: `Preguntas específicas de ${name}`,
+    nl: `${name}-specifieke vragen`,
+    it: `Domande specifiche su ${name}`,
+  }[locale] || `${name} platform-specific questions`;
   const note = PLATFORM_NOTES[item.slug] || { lane: "community", use: ["low-risk test", "one-time signup", "inbox separation"], value: ["account recovery", "saved content", "payments"], verify: "temporary domains may be accepted or rejected depending on platform filters" };
   const peers = platformPeers(item.slug, index);
   const related = [
@@ -841,7 +851,9 @@ function localizedPlatformPage(locale, item, index, t) {
     `<h2>${platformEsc(t.h.substance(name))}</h2>`,
     platformP(tone.plan(name, note)),
     platformP(platformDecision(name, category, note)),
-    `<h2>${platformEsc(`${name} platform-specific questions`)}</h2>`,
+    platformP(`${tone.verify(name, note)} ${tone.risk(name, note)}`),
+    platformP(tone.lane[note.lane] || t.generic.substance(name, category)),
+    `<h2>${platformEsc(questionsTitle)}</h2>`,
     ...item.questions.flatMap(([question, answer]) => [`<h3>${platformEsc(question)}</h3>`, platformP(answer)]),
     `<h2>${platformEsc(t.h.faq)}</h2>`,
     ...[tone.faq1(name, note), tone.faq2(name, note), tone.faq3(name, note)].flatMap(([question, answer]) => [`<h3>${platformEsc(question)}</h3>`, platformP(answer)]),
