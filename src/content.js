@@ -54,6 +54,35 @@ main.page strong{color:var(--ink);font-weight:600}
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
+// ---- Structured data (JSON-LD) helpers ----
+function ldClean(s){return String(s==null?"":s).replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim();}
+function ldScript(obj){return `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g,"\\u003c")}</script>`;}
+function faqSchemaFromBody(body){
+  const items=[]; let m;
+  const reD=/<details[^>]*>\s*<summary[^>]*>(.*?)<\/summary>\s*<p[^>]*>(.*?)<\/p>/gis;
+  while((m=reD.exec(body))){const q=ldClean(m[1]),a=ldClean(m[2]);if(q&&a)items.push({"@type":"Question",name:q,acceptedAnswer:{"@type":"Answer",text:a}});}
+  const reH=/<h3[^>]*>([^<]*\?)<\/h3>\s*<p[^>]*>(.*?)<\/p>/gis;
+  while((m=reH.exec(body))){const q=ldClean(m[1]),a=ldClean(m[2]);if(q&&a)items.push({"@type":"Question",name:q,acceptedAnswer:{"@type":"Answer",text:a}});}
+  if(items.length<2)return "";
+  return ldScript({"@context":"https://schema.org","@type":"FAQPage",mainEntity:items});
+}
+function breadcrumbSchema(rest,locale,title){
+  if(!rest||rest==="/"||rest==="/404")return "";
+  const u=(p)=>"__SITE_URL__"+localizedPath(locale,p);
+  const ui=localeStrings(locale);
+  const items=[{"@type":"ListItem",position:1,name:ldClean(ui.nav.tempMail||"Temp Mail"),item:u("/")}];
+  let pos=2;
+  if(rest.startsWith("/blog/"))items.push({"@type":"ListItem",position:pos++,name:ldClean(ui.nav.blog||"Blog"),item:u("/blog")});
+  else if(rest.startsWith("/temp-mail-for-"))items.push({"@type":"ListItem",position:pos++,name:"Temp Mail for apps",item:u("/temp-mail-for")});
+  items.push({"@type":"ListItem",position:pos,name:ldClean(title),item:u(rest)});
+  return ldScript({"@context":"https://schema.org","@type":"BreadcrumbList",itemListElement:items});
+}
+function articleSchema(rest,locale,title,desc,datePublished){
+  const u="__SITE_URL__"+localizedPath(locale,rest);
+  const d=datePublished||"2026-01-01";
+  return ldScript({"@context":"https://schema.org","@type":"Article",headline:ldClean(title),description:ldClean(desc),inLanguage:(LOCALE_HREFLANG[locale]||locale),datePublished:d,dateModified:d,mainEntityOfPage:u,image:"__SITE_URL__/logo.png",author:{"@type":"Organization",name:"Temp Mail"},publisher:{"@type":"Organization",name:"Temp Mail",logo:{"@type":"ImageObject",url:"__SITE_URL__/logo.png"}}});
+}
+
 function languageSwitcher(rest, locale) {
   return `<nav class="lang-switch" aria-label="Language">${switcherItems(rest, locale).map((item) =>
     `<a href="${esc(item.href)}" hreflang="${esc(LOCALE_HREFLANG[item.code] || item.code)}" aria-current="${item.current ? "true" : "false"}">${esc(item.label)}</a>`
@@ -61,11 +90,16 @@ function languageSwitcher(rest, locale) {
 }
 
 // Full-page HTML template. `path` is the concrete URL path for canonical/OG.
-export function layout({ path, title, desc, bodyHtml, noindex, locale = "en", rest = path }) {
+export function layout({ path, title, desc, bodyHtml, noindex, locale = "en", rest = path, type, datePublished }) {
   const robots = noindex ? "noindex, follow" : "index, follow, max-image-preview:large";
   const ui = localeStrings(locale);
   const home = localizedPath(locale, "/");
   const concretePath = localizedPath(locale, rest || path || "/");
+  const schema = noindex ? "" : [
+    type === "blog" ? articleSchema(rest || path || "/", locale, title, desc, datePublished) : "",
+    breadcrumbSchema(rest || path || "/", locale, title),
+    faqSchemaFromBody(bodyHtml || ""),
+  ].filter(Boolean).join("\n");
   return `<!DOCTYPE html>
 <html lang="${esc(LOCALE_HREFLANG[locale] || locale)}">
 <head>
@@ -89,6 +123,7 @@ __HREFLANG_LINKS__
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+${schema}
 __ADSENSE_HEAD__
 <style>${SHARED_CSS}</style>
 </head>
@@ -326,7 +361,7 @@ ${date}
 ${AD}
 ${post.bodyHtml || ""}
 ${CTA}`;
-  return layout({ path: localizedPath(locale, rest), rest, locale, title: post.title, desc: post.desc || "", bodyHtml: body });
+  return layout({ path: localizedPath(locale, rest), rest, locale, title: post.title, desc: post.desc || "", bodyHtml: body, type: "blog", datePublished: post.date });
 }
 
 export function notFoundPage(opts = {}) {
