@@ -381,6 +381,17 @@ function adsenseHead(cfg) {
   if (!cfg.adsensePubId) return "";
   return `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${cfg.adsensePubId}" crossorigin="anonymous"></script>`;
 }
+function googleTagHead() {
+  return `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-27294R66K5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-27294R66K5');
+</script>`;
+}
 function renderPage(tpl, env, settings, domains, extra = {}) {
   const cfg = publicConfig(env, settings, domains);
   const siteUrl = String(cfg.siteUrl || "").replace(/\/+$/, "");
@@ -391,6 +402,7 @@ function renderPage(tpl, env, settings, domains, extra = {}) {
     .replace(/__SITE_URL__/g, siteUrl)
     .replace(/__ADSENSE_PUB__/g, cfg.adsensePubId || "")
     .replace(/__ADSENSE_HEAD__/g, adsenseHead(cfg))
+    .replace(/__GOOGLE_TAG__/g, googleTagHead())
     .replace(/__API_BASE__/g, "")
     .replace(/__DEMO_MODE__/g, "false");
 }
@@ -951,6 +963,37 @@ ${guides}
 - Complete URL list: ${seoBase}/sitemap.xml
 `;
         return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
+      }
+      if (url.pathname === "/llms-full.txt") {
+        const strip = (html) => String(html || "")
+          .replace(/\[\[(?:CTA|AD)\]\]/g, "")
+          .replace(/<h2[^>]*>/gi, "\n\n## ").replace(/<h3[^>]*>/gi, "\n\n### ")
+          .replace(/<li[^>]*>/gi, "\n- ")
+          .replace(/<\/(?:p|div|section|ul|ol|h2|h3|li|tr)>/gi, "\n")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+          .replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+        const out = [`# Open Temp Mail — full content
+
+> Free temporary & disposable email. A no-sign-up, receive-only inbox for verification emails and one-time passcodes (OTP). This file concatenates the main pages for LLM ingestion. Canonical site: ${seoBase}/ · curated map: ${seoBase}/llms.txt`];
+        const landingOrder = ["/disposable-email", "/temp-mail-generator", "/10-minute-mail", "/fake-email-generator", "/temporary-email-service", "/burner-email", "/temp-gmail", "/anonymous-email", "/alternatives/guerrilla-mail", "/alternatives/mailinator"];
+        for (const p of landingOrder) {
+          const page = LANDING_PAGES[p] || STATIC_PAGES[p];
+          if (page) out.push(`# ${page.title}\nURL: ${seoBase}${p}\n\n${strip(page.body)}`);
+        }
+        let idx = [];
+        try { idx = await getPostsIndex(env, "en"); } catch {}
+        for (const meta of (idx || [])) {
+          let post = null;
+          try { post = await getPost(env, meta.slug, "en"); } catch {}
+          if (post) out.push(`# ${post.title}\nURL: ${seoBase}/blog/${post.slug}\n\n${strip(post.bodyHtml || "")}`);
+        }
+        for (const p of ["/about", "/privacy", "/terms", "/contact", "/disclaimer"]) {
+          const page = STATIC_PAGES[p];
+          if (page) out.push(`# ${page.title}\nURL: ${seoBase}${p}\n\n${strip(page.body)}`);
+        }
+        out.push(`# Per-app guides\nHonest, app-specific guidance lives under ${seoBase}/temp-mail-for (Discord, Netflix, Instagram, ChatGPT, Reddit, and ~50 more). Full URL list: ${seoBase}/sitemap.xml`);
+        return new Response(out.join("\n\n---\n\n") + "\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
       }
       if (url.pathname === "/ads.txt") {
         const pub = publicConfig(env, settings, domains).adsensePubId;

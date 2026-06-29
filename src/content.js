@@ -101,6 +101,7 @@ main.page .posts p{margin:7px 0 0;color:var(--ink-faint);font-size:17px;max-widt
 .footer nav{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:820px;margin:0 auto}
 .footer a{font-family:var(--font-mono);color:var(--ink-faint);text-decoration:none;margin:0;padding:5px 12px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;transition:.15s}.footer a:hover{color:var(--stamp)}
 .footer .copy{display:block;margin-top:14px;color:var(--ink-ghost);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-align:center}
+.footer .footer-meta{margin-top:6px}.footer .footer-meta a{font-size:10px;opacity:.75}
 @media(max-width:600px){main.page h1{font-size:clamp(30px,8.5vw,40px)}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;scroll-behavior:auto!important}}
 `;
@@ -191,6 +192,7 @@ __HREFLANG_LINKS__
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
 ${schema}
 __ADSENSE_HEAD__
+__GOOGLE_TAG__
 <style>${SHARED_CSS}</style>
 </head>
 <body>
@@ -207,6 +209,7 @@ ${bodyHtml}
 </main>
 <footer class="footer">
   <nav><a href="${esc(localizedPath(locale, "/about"))}">${esc(ui.footer.about)}</a><a href="${esc(localizedPath(locale, "/blog"))}">${esc(ui.footer.blog)}</a><a href="${esc(localizedPath(locale, "/temp-mail-for"))}">Temp mail for apps</a><a href="${esc(localizedPath(locale, "/privacy"))}">${esc(ui.footer.privacy)}</a><a href="${esc(localizedPath(locale, "/terms"))}">${esc(ui.footer.terms)}</a><a href="${esc(localizedPath(locale, "/contact"))}">${esc(ui.footer.contact)}</a><a href="${esc(localizedPath(locale, "/disclaimer"))}">${esc(ui.footer.disclaimer)}</a></nav>
+  <nav class="footer-meta"><a href="/sitemap.xml">Sitemap</a><a href="/llms.txt">llms.txt</a><a href="/llms-full.txt">llms-full.txt</a></nav>
   <span class="copy">${ui.footer.copy}</span>
 </footer>
 <script>
