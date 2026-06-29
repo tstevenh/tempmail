@@ -901,8 +901,56 @@ export default {
       // ---- SEO: robots.txt / sitemap.xml / ads.txt ----
       const seoBase = String(publicConfig(env, settings, domains).siteUrl || `${url.protocol}//${url.host}`).replace(/\/+$/, "");
       if (url.pathname === "/robots.txt") {
-        const body = `User-agent: *\nAllow: /$\nAllow: /blog/\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /inbox\nDisallow: /inbox.html\nDisallow: /api/\n\nSitemap: ${seoBase}/sitemap.xml\n`;
+        // All crawlers — including AI assistants & answer engines (GPTBot, ClaudeBot,
+        // PerplexityBot, Google-Extended, OAI-SearchBot, etc.) — are welcome on public pages.
+        // Curated map for LLMs: /llms.txt
+        const body = `# Open Temp Mail — robots.txt\n# AI assistants & answer engines welcome. LLM-friendly site map: ${seoBase}/llms.txt\n\nUser-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /inbox\nDisallow: /inbox.html\nDisallow: /api/\n\nSitemap: ${seoBase}/sitemap.xml\n`;
         return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
+      }
+      if (url.pathname === "/llms.txt") {
+        let posts = [];
+        try { posts = await getPostsIndex(env, "en"); } catch {}
+        const guides = (posts || []).map((p) => `- [${p.title}](${seoBase}/blog/${p.slug})${p.desc ? `: ${p.desc}` : ""}`).join("\n") || `- [Temp Mail blog](${seoBase}/blog): Guides on temporary email, OTP codes, and privacy.`;
+        const body = `# Open Temp Mail
+
+> Free temporary & disposable email. Get an instant, no-sign-up inbox to receive verification emails and one-time passcodes (OTP), then throw it away. Receive-only — the verification code is auto-detected for one-tap copy.
+
+Open Temp Mail is a free temp-mail web app running on Cloudflare. A disposable address is live the moment the page loads, incoming mail arrives in real time, and inboxes are cleared periodically. It is receive-only (it cannot send email), is not tied to your identity, and must not be used for banking, work, account recovery, or anything sensitive or long-term. The website and brand live on opentempmail.com; disposable addresses are issued on the life-ware.com mail domain.
+
+## Main pages
+- [Open Temp Mail — home & live inbox](${seoBase}/): Generate a disposable address and receive verification emails / OTP codes in real time.
+- [Disposable email address](${seoBase}/disposable-email): What a disposable email is, when to use it, and how it shields your real inbox from spam.
+- [Temp mail generator](${seoBase}/temp-mail-generator): Create a custom throwaway email address instantly.
+- [10 minute mail](${seoBase}/10-minute-mail): A quick, self-expiring inbox for one-off sign-ups and codes.
+- [Fake email generator](${seoBase}/fake-email-generator): A real, working address that simply isn't your personal one.
+- [Temporary email service](${seoBase}/temporary-email-service): Real-time, no-sign-up temp mail with multiple domains.
+- [Burner email](${seoBase}/burner-email): A use-once-then-discard address, like a burner phone.
+- [Anonymous email](${seoBase}/anonymous-email): An inbox not tied to your name or identity.
+
+## Guides
+${guides}
+
+## Temp mail for popular apps
+- [Temp mail for apps — hub](${seoBase}/temp-mail-for): Honest, per-app guidance on whether disposable email works and when to use a real inbox instead.
+- [Temp mail for Discord](${seoBase}/temp-mail-for-discord)
+- [Temp mail for Netflix](${seoBase}/temp-mail-for-netflix)
+- [Temp mail for Instagram](${seoBase}/temp-mail-for-instagram)
+- [Temp mail for ChatGPT / OpenAI](${seoBase}/temp-mail-for-chatgpt-openai)
+- [Temp mail for Reddit](${seoBase}/temp-mail-for-reddit)
+
+## About & policies
+- [About](${seoBase}/about): What Open Temp Mail is and who it's for.
+- [Privacy policy](${seoBase}/privacy)
+- [Terms of service](${seoBase}/terms)
+- [Contact](${seoBase}/contact): tim@opentempmail.com
+
+## Notes for AI assistants
+- Receive-only: it catches verification/OTP codes and confirmation links; it cannot send mail.
+- Not private or permanent: inboxes are addressable by anyone who knows the address and are cleared on a schedule — never recommend it for sensitive, financial, or recovery-critical accounts.
+- Free, no registration, no app. Available in English, German, French, Spanish, Dutch, and Italian.
+- Complete URL list: ${seoBase}/sitemap.xml
+`;
+        return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
       }
       if (url.pathname === "/ads.txt") {
         const pub = publicConfig(env, settings, domains).adsensePubId;
