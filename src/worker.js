@@ -28,8 +28,9 @@ import { LANDING_PAGES } from "./content-landing.js";
 import { PLATFORM_LANDING_PATHS } from "./platform-landing-pages.js";
 import { parseLocale, LIVE_LOCALES, localizedPath, hreflangLinks, localeStrings, switcherItems, LOCALE_HREFLANG } from "./i18n.js";
 import { homepageLocale, localizedBlogPost, localizedBlogPosts } from "./localized-content.js";
+import { OG_PNG_B64 } from "./og-image.js";
 
-const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Temp Mail"><rect width="64" height="64" rx="15" fill="#5046E5"/><path d="M17 23.5h30a2.5 2.5 0 0 1 2.5 2.5v15a2.5 2.5 0 0 1-2.5 2.5H17A2.5 2.5 0 0 1 14.5 41V26a2.5 2.5 0 0 1 2.5-2.5z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/><path d="M15.5 25.5 32 37l16.5-11.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Temp Mail"><rect width="64" height="64" rx="14" fill="#d6452c"/><g fill="none" stroke="#fdf6ee" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><rect x="13" y="20" width="38" height="26" rx="3"/><path d="M14.5 22.5 32 35l17.5-12.5"/></g><g stroke="#fdf6ee" stroke-width="2.2" stroke-linecap="round" opacity="0.92"><path d="M40 12.5h14M40 16.5h11M40 8.5h9"/></g></svg>`;
 
 const INBOX_PREFIX = "inbox:";
 const ADDR_INDEX_KEY = "addrs";
@@ -45,7 +46,7 @@ const KEY_SEP = "::";
 function defaultSettings(env) {
   return {
     appearance: {
-      siteName: "Temp Mail",
+      siteName: "Open Temp Mail",
       tagline: "Free temporary & disposable email — no sign-up.",
       logoUrl: env.LOGO_URL || "https://i.imgur.com/XiiKJXd.png",
       primaryColor: "#0b0b0b",
@@ -425,27 +426,25 @@ function renderHomePage(tpl, env, settings, domains, locale, rest) {
     const nav = localeStrings(locale);
     html = html
       .replace(/<a class="brand" href="\/">/g, `<a class="brand" href="${localizedPath(locale, "/")}">`)
-      .replace(/<a href="\/">Temp Mail<\/a>/, `<a href="${localizedPath(locale, "/")}">${nav.nav.tempMail}</a>`)
-      .replace(/<a href="\/disposable-email">Disposable<\/a>/, `<a href="${localizedPath(locale, "/disposable-email")}">${nav.nav.disposable}</a>`)
-      .replace(/<a href="\/blog">Blog<\/a>/, `<a href="${localizedPath(locale, "/blog")}">${nav.nav.blog}</a>`)
-      .replace(/<a href="\/about">About<\/a>/, `<a href="${localizedPath(locale, "/about")}">${nav.nav.about}</a>`)
+      .replace(/<a href="\/disposable-email" class="nav-hide">Disposable<\/a>/, `<a href="${localizedPath(locale, "/disposable-email")}" class="nav-hide">${nav.nav.disposable}</a>`)
+      .replace(/<a href="\/blog" class="nav-hide">Blog<\/a>/, `<a href="${localizedPath(locale, "/blog")}" class="nav-hide">${nav.nav.blog}</a>`)
+      .replace(/<a href="\/about" class="nav-hide">About<\/a>/, `<a href="${localizedPath(locale, "/about")}" class="nav-hide">${nav.nav.about}</a>`)
       .replace(/<details class="lang-switch">[\s\S]*?<\/details>/, languageDetails("/", locale))
-      .replace("No sign-up · Real-time inbox", data.eyebrow)
-      .replace("Your Temporary Email Address", data.h1)
-      .replace("Free, disposable, and instant. Receive verification emails and OTP codes in real time — then throw it away and keep your real inbox spam-free.", data.lead)
-      .replace("Your address", ui.addressLabel)
-      .replace(">Active</span>", `>${ui.active}</span>`)
+      .replace("No sign-up · Real-time", data.eyebrow)
+      .replace("Disposable email,<br /><em>receive-only.</em>", data.h1)
+      .replace("A throwaway address, live the moment this page loads. Paste it anywhere — we catch the code for you.", data.lead)
+      .replace("Your dispatch address", ui.addressLabel)
       .replace(/Copy address/g, ui.copyAddress)
-      .replace(/New address/g, ui.newAddress)
-      .replace("Customize address", ui.customize)
+      .replace(/New address(\s*<\/button>)/, `${ui.newAddress}$1`)
+      .replace("<summary>Customize address</summary>", `<summary>${ui.customize}</summary>`)
       .replace("choose a name", ui.chooseName)
-      .replace("Inbox <span", `${ui.inbox} <span`)
+      .replace("Incoming Manifest <span", `${ui.inbox} <span`)
       .replace("Waiting…", ui.waiting)
-      .replace("Waiting for incoming email", ui.emptyTitle)
-      .replace("Send a message to your address above — it appears here automatically, within seconds.", ui.emptyText)
+      .replace("Monitoring incoming dispatch", ui.emptyTitle)
+      .replace("Send a message to your address above — verification codes and links land here automatically, within seconds.", ui.emptyText)
       .replace(/<div class="content">[\s\S]*?<\/div>\n<\/main>/, `${data.content}\n</main>`)
       .replace(/<a href="\/about">About<\/a><a href="\/blog">Blog<\/a><a href="\/temp-mail-for">Temp mail for apps<\/a><a href="\/privacy">Privacy<\/a><a href="\/terms">Terms<\/a><a href="\/contact">Contact<\/a><a href="\/disclaimer">Disclaimer<\/a>/, `<a href="${localizedPath(locale, "/about")}">${nav.footer.about}</a><a href="${localizedPath(locale, "/blog")}">${nav.footer.blog}</a><a href="${localizedPath(locale, "/temp-mail-for")}">Temp mail for apps</a><a href="${localizedPath(locale, "/privacy")}">${nav.footer.privacy}</a><a href="${localizedPath(locale, "/terms")}">${nav.footer.terms}</a><a href="${localizedPath(locale, "/contact")}">${nav.footer.contact}</a><a href="${localizedPath(locale, "/disclaimer")}">${nav.footer.disclaimer}</a>`)
-      .replace("Temp Mail — Free Temporary &amp; Disposable Email Service", ui.footerCopy);
+      .replace("Temp Mail — Free temporary &amp; disposable email · Printed on the edge, dispatched in real time.", ui.footerCopy);
   }
   return renderPage(html, env, settings, domains);
 }
@@ -876,7 +875,14 @@ export default {
           headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=86400" },
         });
       }
-      // ---- Logo (proxied from logoUrl, used for OG image) ----
+      // ---- OG image (self-hosted 1200x630 Dispatch banner, used for social previews) ----
+      if (url.pathname === "/og.png") {
+        const bytes = Uint8Array.from(atob(OG_PNG_B64), (c) => c.charCodeAt(0));
+        return new Response(bytes, {
+          headers: { "content-type": "image/png", "cache-control": "public, max-age=86400, immutable" },
+        });
+      }
+      // ---- Logo (proxied from logoUrl, used for notification icon) ----
       if (["/logo.png", "/logo"].includes(url.pathname)) {
         try {
           const upstream = await fetch(logoUrl(env, settings), { cf: { cacheTtl: 86400, cacheEverything: true } });

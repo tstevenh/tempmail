@@ -9,23 +9,26 @@ account_id = "0639df68815f32dbfe965f2a8d91e647"
 
 # Custom Domain: wrangler otomatis membuat DNS record + SSL saat deploy (mencegah error DNS NXDOMAIN).
 routes = [
-  { pattern = "domainmu.web.id", custom_domain = true },
-  { pattern = "www.ldomainmu.web.id", custom_domain = true }
+  { pattern = "opentempmail.com", custom_domain = true },
+  { pattern = "www.opentempmail.com", custom_domain = true }
 ]
 
 [vars]
 # Bisa isi lebih dari satu domain, pisahkan dengan koma.
 # Semua domain harus aktif Email Routing/catch-all ke Worker di Cloudflare.
-MAIL_DOMAINS = "lawtmail.web.id"
+MAIL_DOMAINS = "lawtmail.web.id,life-ware.com"
 # Password owner untuk membuka dashboard (/dashboard) dan API admin.
-DASHBOARD_PASSWORD = "12345"
+# SECURITY: do NOT hardcode here (wrangler.toml is committed to git).
+#   Production: run  `wrangler secret put DASHBOARD_PASSWORD`
+#   Local dev:  set it in .dev.vars (gitignored)
+# Code reads env.DASHBOARD_PASSWORD identically whether it's a secret or a var.
 # Logo website + sumber favicon.ico otomatis (di-serve oleh Worker di /favicon.ico).
 LOGO_URL = "https://i.imgur.com/XiiKJXd.png"
 # PUBLIC_SITE="off" => lawstoremail.web.id jadi BACKEND temp mail saja.
 # Set "on" jika ingin website publik kembali tampil di domain ini.
 PUBLIC_SITE = "on"
 # SEO: canonical / Open Graph / sitemap base URL. MUST be your real https domain (no trailing slash).
-SITE_URL = "https://example.com"
+SITE_URL = "https://opentempmail.com"
 # Google AdSense publisher id WITHOUT the "ca-" prefix, e.g. "pub-1234567890123456".
 # Leave empty until approved — ad units and ads.txt stay inactive while blank.
 ADSENSE_PUB_ID = ""
