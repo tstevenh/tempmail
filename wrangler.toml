@@ -1,11 +1,11 @@
 # ====================================================================
-# LawMail — Cloudflare Worker backend + website
+# Open Temp Mail — Cloudflare Worker backend + website
 # ====================================================================
 
-name = "lawmail"
+name = "tempmail"
 main = "src/worker.js"
 compatibility_date = "2024-11-01"
-account_id = "0639df68815f32dbfe965f2a8d91e647"
+account_id = "b574b9f3eb7c4f42e63776cd2601a979"
 
 # Custom Domain: wrangler otomatis membuat DNS record + SSL saat deploy (mencegah error DNS NXDOMAIN).
 routes = [
@@ -16,7 +16,7 @@ routes = [
 [vars]
 # Bisa isi lebih dari satu domain, pisahkan dengan koma.
 # Semua domain harus aktif Email Routing/catch-all ke Worker di Cloudflare.
-MAIL_DOMAINS = "lawtmail.web.id,life-ware.com"
+MAIL_DOMAINS = "life-ware.com"
 # Password owner untuk membuka dashboard (/dashboard) dan API admin.
 # SECURITY: do NOT hardcode here (wrangler.toml is committed to git).
 #   Production: run  `wrangler secret put DASHBOARD_PASSWORD`
@@ -24,7 +24,7 @@ MAIL_DOMAINS = "lawtmail.web.id,life-ware.com"
 # Code reads env.DASHBOARD_PASSWORD identically whether it's a secret or a var.
 # Logo website + sumber favicon.ico otomatis (di-serve oleh Worker di /favicon.ico).
 LOGO_URL = "https://i.imgur.com/XiiKJXd.png"
-# PUBLIC_SITE="off" => lawstoremail.web.id jadi BACKEND temp mail saja.
+# PUBLIC_SITE="off" => opentempmail.com jadi BACKEND temp mail saja.
 # Set "on" jika ingin website publik kembali tampil di domain ini.
 PUBLIC_SITE = "on"
 # SEO: canonical / Open Graph / sitemap base URL. MUST be your real https domain (no trailing slash).
@@ -39,7 +39,7 @@ crons = ["0 */6 * * *"]
 
 [[kv_namespaces]]
 binding = "TEMPMAIL_KV"
-id = "1cd5671ffe3a490caf9d4797568f334d"
+id = "d610bae13f5b493d8978947a2b8f6571"
 
 [[rules]]
 type = "Text"

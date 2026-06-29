@@ -1,7 +1,7 @@
 {
-  "name": "law-mail-permanent-mail",
+  "name": "opentempmail",
   "version": "2.0.0",
-  "description": "LAW MAIL",
+  "description": "Open Temp Mail — free temporary & disposable email (Cloudflare Worker)",
   "private": true,
   "scripts": {
     "start": "wrangler dev --port 5000",

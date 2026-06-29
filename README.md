@@ -1,22 +1,23 @@
-# LAW MAIL — Permanent Mail + Admin Dashboard (Worker-Only Edition)
+# Open Temp Mail — Permanent Mail + Admin Dashboard (Worker-Only Edition)
 
-LAW MAIL adalah website email pribadi/temp-mail permanen di atas **Cloudflare Email Routing + KV**,akses terkunci PIN, multi-domain, dan **Admin Dashboard**.
+Open Temp Mail adalah website email pribadi/temp-mail permanen di atas **Cloudflare Email Routing + KV**,akses terkunci PIN, multi-domain, dan **Admin Dashboard**.
 
 ## ✅ Cara kerja (ringkas)
 
 ```
-Browser  ──▶  https://lawstoremail.web.id        (Worker menyajikan HTML)
-         ──▶  https://lawstoremail.web.id/api/*  (Worker yang sama melayani API)
-Email    ──▶  @lawtmail.web.id  ──(Email Routing catch-all)──▶  Worker
+Browser  ──▶  https://opentempmail.com        (Worker menyajikan HTML)
+         ──▶  https://opentempmail.com/api/*  (Worker yang sama melayani API)
+Email    ──▶  @life-ware.com  ──(Email Routing catch-all)──▶  Worker
 ```
 
-- **Domain website + API:** `lawstoremail.web.id` (lihat `routes` di `wrangler.toml`).
-- **Domain alamat email:** `lawtmail.web.id` (lihat `MAIL_DOMAINS` di `wrangler.toml`).
-- Buka websitenya langsung di **https://lawstoremail.web.id** (bukan Vercel).
+- **Domain website + API:** `opentempmail.com` (lihat `routes` di `wrangler.toml`).
+- **Domain alamat email:** `life-ware.com` (lihat `MAIL_DOMAINS` di `wrangler.toml`).
+- Buka websitenya langsung di **https://opentempmail.com** (bukan Vercel).
 
-## 🔑 Password default
-- **Password website (lock / PIN):** `1234` — bisa diubah dari dashboard → **Akses / Portal**.
-- **Password dashboard owner:** `aw32154` — diatur di `wrangler.toml` (`DASHBOARD_PASSWORD`).
+## 🔑 Password / akses
+- **Situs publik:** `requirePin: false` (tanpa PIN wall). Bisa diaktifkan untuk mode privat dari dashboard → **Akses / Portal**.
+- **Password dashboard owner:** disimpan sebagai Cloudflare Worker **secret**, bukan di repo.
+  Set: `npx wrangler secret put DASHBOARD_PASSWORD` (prod) / `.dev.vars` untuk lokal.
 
 ## 📁 File penting
 | File | Fungsi |
@@ -39,12 +40,12 @@ npx wrangler login
 npx wrangler deploy
 ```
 Setelah deploy, Cloudflare otomatis membuat DNS + SSL untuk custom domain di `routes`.
-Buka **https://lawstoremail.web.id** untuk memastikan website tampil.
+Buka **https://opentempmail.com** untuk memastikan website tampil.
 
 ## ✉️ Aktifkan Email Routing (agar email/OTP masuk)
-Lakukan untuk **`lawtmail.web.id`** (domain alamat email di `MAIL_DOMAINS`):
-1. Cloudflare → pilih domain `lawtmail.web.id` → **Email → Email Routing**, aktifkan sampai MX/TXT valid.
-2. **Routing rules → Catch-all address → Action: Send to a Worker** → pilih Worker `lawmail`.
+Lakukan untuk **`life-ware.com`** (domain alamat email di `MAIL_DOMAINS`):
+1. Cloudflare → pilih domain `life-ware.com` → **Email → Email Routing**, aktifkan sampai MX/TXT valid.
+2. **Routing rules → Catch-all address → Action: Send to a Worker** → pilih Worker `tempmail`.
 3. Ulangi untuk setiap domain tambahan yang kamu daftarkan di `MAIL_DOMAINS`.
 
 > Jika kamu menambah domain baru lewat dashboard, domain itu juga **wajib** diaktifkan Email Routing + catch-all ke Worker.
@@ -52,7 +53,7 @@ Lakukan untuk **`lawtmail.web.id`** (domain alamat email di `MAIL_DOMAINS`):
 ## 🩺 Cek cepat kalau masih error
 Buka endpoint diagnostik (harus mengembalikan JSON `ok:true`):
 ```
-https://lawstoremail.web.id/api/debug
+https://opentempmail.com/api/debug
 ```
 - Jika halaman ini **tidak terbuka** → Worker belum ter-deploy atau domain belum aktif (jalankan `npx wrangler deploy`, cek DNS/SSL di Cloudflare).
 - Jika `kvBound:false` → binding `TEMPMAIL_KV` di `wrangler.toml` salah/ kosong.

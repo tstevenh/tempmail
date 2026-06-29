@@ -287,7 +287,7 @@ async function notify(env, settings, record) {
   }
   const tg = settings.telegram;
   if (tg && tg.enabled && tg.botToken && tg.chatId) {
-    const text = `\uD83D\uDCE9 *${settings.appearance.siteName || "LAW MAIL"}*\n*To:* ${record.to}\n*From:* ${record.from}\n*Subject:* ${record.subject}\n\n${(record.text || "").slice(0, 600)}`;
+    const text = `\uD83D\uDCE9 *${settings.appearance.siteName || "Open Temp Mail"}*\n*To:* ${record.to}\n*From:* ${record.from}\n*Subject:* ${record.subject}\n\n${(record.text || "").slice(0, 600)}`;
     try {
       await fetch("https://api.telegram.org/bot" + tg.botToken + "/sendMessage", {
         method: "POST", headers: { "content-type": "application/json" },
@@ -559,7 +559,7 @@ export default {
       const from = normalizeAddress(message.from);
 
       if (!isAllowedAddress(to, domains)) {
-        console.error("LawMail: email DITOLAK, domain tidak terdaftar.", { to, allowed: domains });
+        console.error("TempMail: email DITOLAK, domain tidak terdaftar.", { to, allowed: domains });
         return;
       }
 
@@ -596,7 +596,7 @@ export default {
       })();
       if (ctx && ctx.waitUntil) ctx.waitUntil(after); else await after;
     } catch (err) {
-      console.error("LawMail email handler error", err);
+      console.error("TempMail email handler error", err);
     }
   },
 
@@ -833,7 +833,7 @@ export default {
         if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
         const sample = {
           id: "test-" + Date.now(), to: domains[0] ? "test@" + domains[0] : "test@example.com",
-          from: "noreply@lawmail.dev", fromName: "LAW MAIL Test",
+          from: "noreply@opentempmail.com", fromName: "Open Temp Mail Test",
           subject: "Temp Mail test notification", text: "This is a test message from the dashboard.", html: "",
           date: new Date().toISOString(),
         };
@@ -1027,7 +1027,7 @@ export default {
       }
       return new Response("Not found", { status: 404 });
     } catch (err) {
-      console.error("LawMail fetch handler error", err);
+      console.error("TempMail fetch handler error", err);
       return new Response("Internal Error: " + err.message, { status: 500 });
     }
   },

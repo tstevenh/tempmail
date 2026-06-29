@@ -393,7 +393,7 @@ ${CTA}` },
 <p class="lead">We'd love to hear from you — questions, feedback, and reports are all welcome.</p>
 <p>Temp Mail is a free temporary email service, and we keep it simple, fast, and private. If something isn't working, you have an idea to improve it, or you'd like to get in touch about a partnership, the fastest way to reach us is by email.</p>
 <h2>Email us</h2>
-<p>For general questions, feedback, feature requests, partnership enquiries, or abuse reports, email <a href="mailto:support@opentempmail.com">support@opentempmail.com</a>. We read every message and aim to reply within a few business days.</p>
+<p>For general questions, feedback, feature requests, partnership enquiries, or abuse reports, email <a href="mailto:tim@opentempmail.com">tim@opentempmail.com</a>. We read every message and aim to reply within a few business days.</p>
 <h2>Reporting abuse</h2>
 <p>Temp Mail is meant for privacy and convenience — receiving verification codes, avoiding spam, and one-off sign-ups. It is not for fraud, harassment, or anything illegal. If you believe an address on our service is being misused, email us with the details and we'll look into it.</p>
 <h2>Privacy &amp; data requests</h2>
