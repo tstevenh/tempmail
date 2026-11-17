@@ -11,13 +11,17 @@
 //   - Scheduled (cron) and manual auto-cleanup
 //   - SEO: server-rendered pages, robots.txt, sitemap.xml, ads.txt, KV-backed blog
 //
-// KV storage:
-//   inbox:<address>  -> JSON array of messages for one address
-//   addrs            -> JSON array of all known addresses
+// D1 storage:
+//   mailboxes         -> known addresses and receive timestamps
+//   messages          -> one row per received email
+//   traffic_events    -> the 250 most recent admin-visible events
+//
+// KV storage (intentionally retained only for settings, blog content, and the
+// seven-day mailbox recovery archive used during the D1 cutover):
+//   inbox:<address>  -> legacy JSON array of messages
+//   addrs            -> legacy JSON address index
 //   settings:v1      -> JSON runtime config (managed from the dashboard)
-//   traffic:v1       -> JSON live-traffic log (email + security events)
 //   post:<slug>      -> JSON blog post; posts:index -> JSON list of post metas
-//   rl:<ip>:<bucket> -> rate-limit counter (with TTL)
 // =====================================================================
 import PostalMime from "postal-mime";
 import PAGE from "../public/app.html";
@@ -28,6 +32,8 @@ import { LANDING_PAGES } from "./content-landing.js";
 import { PLATFORM_LANDING_PATHS } from "./platform-landing-pages.js";
 import { parseLocale, LIVE_LOCALES, localizedPath, hreflangLinks, localeStrings, switcherItems, LOCALE_HREFLANG } from "./i18n.js";
 import { homepageLocale, localizedBlogPost, localizedBlogPosts } from "./localized-content.js";
+import { englishBlogPost, englishBlogPosts } from "./blog-posts-en.js";
+import { canonicalProductionUrl } from "./canonical-url.mjs";
 import { OG_PNG_B64 } from "./og-image.js";
 
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Temp Mail"><rect width="64" height="64" rx="14" fill="#d6452c"/><g fill="none" stroke="#fdf6ee" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><rect x="13" y="20" width="38" height="26" rx="3"/><path d="M14.5 22.5 32 35l17.5-12.5"/></g><g stroke="#fdf6ee" stroke-width="2.2" stroke-linecap="round" opacity="0.92"><path d="M40 12.5h14M40 16.5h11M40 8.5h9"/></g></svg>`;
@@ -35,9 +41,11 @@ const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
 const INBOX_PREFIX = "inbox:";
 const ADDR_INDEX_KEY = "addrs";
 const SETTINGS_KEY = "settings:v1";
-const TRAFFIC_KEY = "traffic:v1";
 const MAX_PER_INBOX = 300;
 const MAX_TRAFFIC = 250;
+const DEFAULT_RETENTION_DAYS = 7;
+const D1_BATCH_SIZE = 50;
+const LEGACY_RECOVERY_TTL_SECONDS = 7 * 24 * 60 * 60;
 const KEY_SEP = "::";
 
 // ---------------------------------------------------------------------
@@ -72,11 +80,10 @@ function defaultSettings(env) {
     telegram: { enabled: false, botToken: "", chatId: "" },
     apiKeys: [], // { key, label, createdAt }
     security: {
-      rateLimit: { enabled: false, max: 120, windowSec: 60 },
       bannedIps: [],
       blockedSenders: [],
     },
-    cleanup: { enabled: false, days: 30, maxPerInbox: MAX_PER_INBOX },
+    cleanup: { enabled: true, days: DEFAULT_RETENTION_DAYS, maxPerInbox: MAX_PER_INBOX },
   };
 }
 
@@ -164,14 +171,39 @@ function clientIp(request) {
   return (request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "").trim();
 }
 
-// ---- Storage helpers (get/put/delete saja) ----
-async function readInbox(env, address) {
+// ---- Mailbox storage ----
+// MAIL_STORAGE_MODE=kv exists only for the migration release. D1 is the
+// authoritative default and legacy inbox values are never deleted by Worker
+// code, giving the owner a seven-day recovery archive after cutover.
+function isLegacyMailboxMode(env) {
+  return String(env.MAIL_STORAGE_MODE || "d1").trim().toLowerCase() === "kv";
+}
+
+function requireD1(env) {
+  if (!env.TEMPMAIL_DB) throw new Error("TEMPMAIL_DB binding is missing");
+  return env.TEMPMAIL_DB;
+}
+
+function messageRow(row) {
+  return {
+    id: row.id,
+    to: row.address,
+    from: row.sender,
+    fromName: row.sender_name || "",
+    subject: row.subject || "(no subject)",
+    text: row.body_text || "",
+    html: row.body_html || "",
+    date: row.received_at,
+  };
+}
+
+async function readLegacyInbox(env, address) {
   const raw = await env.TEMPMAIL_KV.get(INBOX_PREFIX + address);
   if (!raw) return [];
   try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch { return []; }
 }
 
-async function writeInbox(env, address, messages, cap) {
+async function writeLegacyInbox(env, address, messages, cap) {
   const key = INBOX_PREFIX + address;
   if (!messages || !messages.length) { await env.TEMPMAIL_KV.delete(key); return; }
   let list = messages;
@@ -180,24 +212,129 @@ async function writeInbox(env, address, messages, cap) {
   await env.TEMPMAIL_KV.put(key, JSON.stringify(list));
 }
 
-async function getAddressIndex(env) {
+async function getLegacyAddressIndex(env) {
   const raw = await env.TEMPMAIL_KV.get(ADDR_INDEX_KEY);
   if (!raw) return [];
   try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch { return []; }
 }
 
-async function addAddressToIndex(env, address) {
-  const idx = await getAddressIndex(env);
+async function addAddressToLegacyIndex(env, address) {
+  const idx = await getLegacyAddressIndex(env);
   if (!idx.includes(address)) {
     idx.push(address);
     await env.TEMPMAIL_KV.put(ADDR_INDEX_KEY, JSON.stringify(idx));
   }
 }
 
-async function removeAddressFromIndex(env, address) {
-  const idx = await getAddressIndex(env);
+async function removeAddressFromLegacyIndex(env, address) {
+  const idx = await getLegacyAddressIndex(env);
   const next = idx.filter((a) => a !== address);
   if (next.length !== idx.length) await env.TEMPMAIL_KV.put(ADDR_INDEX_KEY, JSON.stringify(next));
+}
+
+async function readD1Inbox(env, address) {
+  const { results = [] } = await requireD1(env)
+    .prepare("SELECT id, address, sender, sender_name, subject, body_text, body_html, received_at FROM messages WHERE address = ? ORDER BY received_at DESC")
+    .bind(address)
+    .all();
+  return results.map(messageRow);
+}
+
+async function readInbox(env, address) {
+  return isLegacyMailboxMode(env) ? readLegacyInbox(env, address) : readD1Inbox(env, address);
+}
+
+async function getD1AddressIndex(env) {
+  const { results = [] } = await requireD1(env)
+    .prepare("SELECT address FROM mailboxes ORDER BY COALESCE(last_received_at, created_at) DESC")
+    .all();
+  return results.map((row) => row.address);
+}
+
+async function getAddressIndex(env) {
+  return isLegacyMailboxMode(env) ? getLegacyAddressIndex(env) : getD1AddressIndex(env);
+}
+
+async function countD1Messages(env, address) {
+  const row = await requireD1(env).prepare("SELECT COUNT(*) AS total FROM messages WHERE address = ?").bind(address).first();
+  return Number(row?.total || 0);
+}
+
+async function storeD1Message(env, record, maxPerInbox = MAX_PER_INBOX) {
+  const db = requireD1(env);
+  const receivedAt = record.date || new Date().toISOString();
+  await db.batch([
+    db.prepare("INSERT INTO mailboxes (address, created_at, last_received_at) VALUES (?, ?, ?) ON CONFLICT(address) DO UPDATE SET last_received_at = MAX(COALESCE(mailboxes.last_received_at, ''), excluded.last_received_at)")
+      .bind(record.to, receivedAt, receivedAt),
+    db.prepare("INSERT OR IGNORE INTO messages (id, address, sender, sender_name, subject, body_text, body_html, received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(record.id, record.to, record.from || "", record.fromName || "", record.subject || "(no subject)", record.text || "", record.html || "", receivedAt),
+  ]);
+  const cap = Math.max(1, Number(maxPerInbox) || MAX_PER_INBOX);
+  await db.prepare("DELETE FROM messages WHERE id IN (SELECT id FROM messages WHERE address = ? ORDER BY received_at DESC LIMIT -1 OFFSET ?)")
+    .bind(record.to, cap)
+    .run();
+}
+
+async function storeMessage(env, record, maxPerInbox) {
+  if (isLegacyMailboxMode(env)) {
+    const inbox = await readLegacyInbox(env, record.to);
+    inbox.push(record);
+    await writeLegacyInbox(env, record.to, inbox, maxPerInbox);
+    await addAddressToLegacyIndex(env, record.to);
+    return;
+  }
+  await storeD1Message(env, record, maxPerInbox);
+}
+
+async function deleteStoredMessage(env, address, id, maxPerInbox) {
+  if (isLegacyMailboxMode(env)) {
+    const inbox = await readLegacyInbox(env, address);
+    await writeLegacyInbox(env, address, inbox.filter((message) => message.id !== id), maxPerInbox);
+    return;
+  }
+  await requireD1(env).prepare("DELETE FROM messages WHERE address = ? AND id = ?").bind(address, id).run();
+}
+
+async function clearStoredMailbox(env, address) {
+  if (isLegacyMailboxMode(env)) {
+    await env.TEMPMAIL_KV.delete(INBOX_PREFIX + address);
+    await removeAddressFromLegacyIndex(env, address);
+    return;
+  }
+  const db = requireD1(env);
+  await db.batch([
+    db.prepare("DELETE FROM messages WHERE address = ?").bind(address),
+    db.prepare("DELETE FROM mailboxes WHERE address = ?").bind(address),
+  ]);
+}
+
+async function readAllMessages(env) {
+  if (isLegacyMailboxMode(env)) {
+    const messages = [];
+    for (const address of await getLegacyAddressIndex(env)) {
+      for (const message of await readLegacyInbox(env, address)) messages.push(withKey(message, address));
+    }
+    return messages.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+  const { results = [] } = await requireD1(env)
+    .prepare("SELECT id, address, sender, sender_name, subject, body_text, body_html, received_at FROM messages ORDER BY received_at DESC")
+    .all();
+  return results.map((row) => withKey(messageRow(row), row.address));
+}
+
+async function clearAllStoredMail(env) {
+  if (isLegacyMailboxMode(env)) {
+    let deleted = 0;
+    for (const address of await getLegacyAddressIndex(env)) {
+      deleted += (await readLegacyInbox(env, address)).length;
+      await env.TEMPMAIL_KV.delete(INBOX_PREFIX + address);
+    }
+    await env.TEMPMAIL_KV.delete(ADDR_INDEX_KEY);
+    return deleted;
+  }
+  const result = await requireD1(env).prepare("DELETE FROM messages").run();
+  await requireD1(env).prepare("DELETE FROM mailboxes").run();
+  return Number(result.meta?.changes || 0);
 }
 
 function withKey(message, address) {
@@ -210,31 +347,16 @@ function parseKey(key) {
   return { address: key.slice(0, i), id: key.slice(i + KEY_SEP.length) };
 }
 
-// ---- Live traffic log ----
+// ---- Live traffic log (D1, capped at 250 rows) ----
 async function logTraffic(env, entry) {
   try {
-    const raw = await env.TEMPMAIL_KV.get(TRAFFIC_KEY);
-    let arr = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(arr)) arr = [];
-    arr.unshift({ t: new Date().toISOString(), ...entry });
-    if (arr.length > MAX_TRAFFIC) arr = arr.slice(0, MAX_TRAFFIC);
-    await env.TEMPMAIL_KV.put(TRAFFIC_KEY, JSON.stringify(arr));
+    const db = requireD1(env);
+    await db.batch([
+      db.prepare("INSERT INTO traffic_events (occurred_at, type, ip, detail) VALUES (?, ?, ?, ?)")
+        .bind(new Date().toISOString(), String(entry.type || "event"), entry.ip || null, String(entry.detail || "")),
+      db.prepare(`DELETE FROM traffic_events WHERE id NOT IN (SELECT id FROM traffic_events ORDER BY id DESC LIMIT ${MAX_TRAFFIC})`),
+    ]);
   } catch { /* abaikan */ }
-}
-
-// ---- Log kunjungan IP ke website (dedup per-IP via TTL agar log tidak banjir) ----
-const VISIT_PREFIX = "vis:";
-const VISIT_TTL = 900; // 15 menit: 1 IP dicatat sekali per window ini
-async function logVisit(env, ip, country, opts = {}) {
-  if (!ip) return;
-  const prefix = opts.prefix || VISIT_PREFIX;
-  try {
-    const seen = await env.TEMPMAIL_KV.get(prefix + ip);
-    if (seen) return; // sudah tercatat baru-baru ini, jangan banjiri console
-    await env.TEMPMAIL_KV.put(prefix + ip, "1", { expirationTtl: opts.ttl || VISIT_TTL });
-  } catch { /* abaikan error dedup, tetap lanjut catat */ }
-  const detail = opts.detail || `IP visited site: ${ip}${country ? " (" + country + ")" : ""}`;
-  await logTraffic(env, { type: opts.type || "visit", ip, detail });
 }
 
 // ---- Security checks ----
@@ -254,23 +376,130 @@ function isBlockedSender(settings, from) {
   });
 }
 
-async function checkRateLimit(env, settings, ip) {
-  const rl = settings.security.rateLimit;
-  if (!rl || !rl.enabled || !ip) return { ok: true };
-  const win = Math.max(60, rl.windowSec || 60); // KV TTL minimal 60 dtk
-  const bucket = Math.floor(Date.now() / 1000 / win);
-  const key = `rl:${ip}:${bucket}`;
-  let n = 0;
-  try { n = parseInt((await env.TEMPMAIL_KV.get(key)) || "0", 10) || 0; } catch {}
-  n++;
-  try { await env.TEMPMAIL_KV.put(key, String(n), { expirationTtl: win + 10 }); } catch {}
-  return { ok: n <= (rl.max || 120), count: n };
-}
-
 function checkApiKey(url, request, settings) {
   const key = (url.searchParams.get("apikey") || request.headers.get("x-api-key") || "").trim();
   if (!key) return false;
   return (settings.apiKeys || []).some((k) => k && k.key === key);
+}
+
+// ---- Browser inbox session (Turnstile + signed session cookie) ----
+const INBOX_SESSION_COOKIE = "__Host-inbox_session";
+
+function base64Url(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlBytes(value) {
+  const padded = String(value || "").replace(/-/g, "+").replace(/_/g, "/") + "===".slice((String(value || "").length + 3) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function requestCookie(request, name) {
+  const pairs = String(request.headers.get("cookie") || "").split(";");
+  for (const pair of pairs) {
+    const index = pair.indexOf("=");
+    if (index < 0) continue;
+    if (pair.slice(0, index).trim() === name) return pair.slice(index + 1).trim();
+  }
+  return "";
+}
+
+async function inboxSessionKey(env) {
+  const secret = String(env.INBOX_SESSION_SECRET || "");
+  if (!secret) throw new Error("INBOX_SESSION_SECRET is missing");
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+
+async function createInboxSession(env) {
+  const payload = base64Url(new TextEncoder().encode(JSON.stringify({ issuedAt: Date.now(), nonce: crypto.randomUUID() })));
+  const unsigned = `v1.${payload}`;
+  const signature = await crypto.subtle.sign("HMAC", await inboxSessionKey(env), new TextEncoder().encode(unsigned));
+  return `${unsigned}.${base64Url(new Uint8Array(signature))}`;
+}
+
+async function hasInboxSession(request, env) {
+  try {
+    const value = requestCookie(request, INBOX_SESSION_COOKIE);
+    const parts = value.split(".");
+    if (parts.length !== 3 || parts[0] !== "v1") return false;
+    const unsigned = `${parts[0]}.${parts[1]}`;
+    const valid = await crypto.subtle.verify("HMAC", await inboxSessionKey(env), base64UrlBytes(parts[2]), new TextEncoder().encode(unsigned));
+    if (!valid) return false;
+    const payload = JSON.parse(new TextDecoder().decode(base64UrlBytes(parts[1])));
+    return Number.isFinite(payload.issuedAt) && payload.issuedAt <= Date.now() + 5 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
+async function verifyTurnstile(env, token, remoteIp) {
+  const secret = String(env.TURNSTILE_SECRET || "");
+  if (!secret) return { ok: false, error: "Turnstile is not configured" };
+  if (!token) return { ok: false, error: "Turnstile token is required" };
+  try {
+    const body = new URLSearchParams({ secret, response: token });
+    if (remoteIp) body.set("remoteip", remoteIp);
+    const response = await fetch(env.TURNSTILE_VERIFY_URL || "https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const result = await response.json();
+    const requiredHostname = String(env.TURNSTILE_EXPECTED_HOSTNAME || "").trim().toLowerCase();
+    if (!result.success || (requiredHostname && String(result.hostname || "").toLowerCase() !== requiredHostname)) {
+      return { ok: false, error: "Turnstile verification failed" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Turnstile verification unavailable" };
+  }
+}
+
+function inboxSessionCookie(value) {
+  return `${INBOX_SESSION_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax`;
+}
+
+function jsonWithCookie(data, cookie, status = 200) {
+  const response = json(data, status);
+  response.headers.set("set-cookie", cookie);
+  return response;
+}
+
+// ---- Durable Object mailbox notification hub ----
+export class InboxHub {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/notify") {
+      const payload = JSON.stringify({ type: "inbox-updated" });
+      for (const socket of this.state.getWebSockets()) {
+        try { socket.send(payload); } catch { socket.close(1011, "Unable to notify client"); }
+      }
+      return new Response(null, { status: 204 });
+    }
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket upgrade", { status: 426 });
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    this.state.acceptWebSocket(server);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  webSocketMessage() {}
+  webSocketClose() {}
+  webSocketError() {}
+}
+
+async function publishInboxUpdate(env, address) {
+  if (!env.INBOX_HUB) return;
+  const stub = env.INBOX_HUB.get(env.INBOX_HUB.idFromName(address));
+  const response = await stub.fetch("https://inbox-hub/notify", { method: "POST" });
+  if (!response.ok) throw new Error(`Inbox hub notification failed (${response.status})`);
 }
 
 // ---- Notifikasi bot (webhook generic + Telegram) ----
@@ -341,21 +570,113 @@ async function runCleanup(env, settingsArg) {
   const settings = settingsArg || (await getSettings(env));
   const c = settings.cleanup || {};
   if (!c.enabled) return { ran: false, removed: 0 };
-  const days = Math.max(1, c.days || 30);
-  const cutoff = Date.now() - days * 86400000;
-  const addrs = await getAddressIndex(env);
+  const days = Math.max(1, Number(c.days) || DEFAULT_RETENTION_DAYS);
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  const cap = Math.max(1, Number(c.maxPerInbox) || MAX_PER_INBOX);
   let removed = 0;
-  for (const a of addrs) {
-    const inbox = await readInbox(env, a);
-    const kept = inbox.filter((m) => new Date(m.date).getTime() >= cutoff);
-    if (kept.length !== inbox.length) {
-      removed += inbox.length - kept.length;
-      await writeInbox(env, a, kept, c.maxPerInbox);
-      if (!kept.length) await removeAddressFromIndex(env, a);
+  if (isLegacyMailboxMode(env)) {
+    for (const address of await getLegacyAddressIndex(env)) {
+      const inbox = await readLegacyInbox(env, address);
+      const kept = inbox.filter((message) => String(message.date || "") >= cutoff);
+      if (kept.length !== inbox.length) {
+        removed += inbox.length - kept.length;
+        await writeLegacyInbox(env, address, kept, cap);
+        if (!kept.length) await removeAddressFromLegacyIndex(env, address);
+      }
     }
+  } else {
+    const db = requireD1(env);
+    const expired = await db.prepare("DELETE FROM messages WHERE received_at < ?").bind(cutoff).run();
+    const overflow = await db.prepare("DELETE FROM messages WHERE id IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY address ORDER BY received_at DESC) AS row_number FROM messages) WHERE row_number > ?)")
+      .bind(cap)
+      .run();
+    await db.prepare("DELETE FROM mailboxes WHERE NOT EXISTS (SELECT 1 FROM messages WHERE messages.address = mailboxes.address)").run();
+    removed = Number(expired.meta?.changes || 0) + Number(overflow.meta?.changes || 0);
   }
   if (removed) await logTraffic(env, { type: "cleanup", detail: `Auto-cleanup removed ${removed} old emails (> ${days} days)` });
   return { ran: true, removed };
+}
+
+// ---- Idempotent KV → D1 mailbox migration ----
+async function executeD1InChunks(db, statements) {
+  for (let start = 0; start < statements.length; start += D1_BATCH_SIZE) {
+    await db.batch(statements.slice(start, start + D1_BATCH_SIZE));
+  }
+}
+
+async function migrateLegacyMailbox(env, address) {
+  const inbox = await readLegacyInbox(env, address);
+  const db = requireD1(env);
+  const firstDate = inbox
+    .map((message) => String(message.date || ""))
+    .filter(Boolean)
+    .sort()[0] || new Date().toISOString();
+  const lastDate = inbox
+    .map((message) => String(message.date || ""))
+    .filter(Boolean)
+    .sort()
+    .at(-1) || firstDate;
+  const statements = [
+    db.prepare("INSERT INTO mailboxes (address, created_at, last_received_at) VALUES (?, ?, ?) ON CONFLICT(address) DO UPDATE SET last_received_at = MAX(COALESCE(mailboxes.last_received_at, ''), excluded.last_received_at)")
+      .bind(address, firstDate, lastDate),
+  ];
+  inbox.forEach((message, index) => {
+    statements.push(
+      db.prepare("INSERT OR IGNORE INTO messages (id, address, sender, sender_name, subject, body_text, body_html, received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(
+          String(message.id || `${address}:legacy:${index}`),
+          address,
+          String(message.from || ""),
+          String(message.fromName || ""),
+          String(message.subject || "(no subject)"),
+          String(message.text || ""),
+          String(message.html || ""),
+          String(message.date || firstDate),
+        ),
+    );
+  });
+  await executeD1InChunks(db, statements);
+  // During the final D1-mode replay, refresh every old inbox key with a
+  // seven-day TTL. This gives the owner a recovery window while ensuring KV
+  // returns to settings/blog-only storage afterwards.
+  if (!isLegacyMailboxMode(env) && inbox.length) {
+    await env.TEMPMAIL_KV.put(INBOX_PREFIX + address, JSON.stringify(inbox), { expirationTtl: LEGACY_RECOVERY_TTL_SECONDS });
+  }
+  return { sourceMessages: inbox.length, d1Messages: await countD1Messages(env, address) };
+}
+
+async function migrateLegacyBatch(env, cursorInput, limitInput) {
+  const addresses = [...new Set((await getLegacyAddressIndex(env)).map(normalizeAddress).filter(Boolean))];
+  const cursor = Math.max(0, Math.min(addresses.length, Number.parseInt(cursorInput, 10) || 0));
+  const limit = Math.max(1, Math.min(20, Number.parseInt(limitInput, 10) || 10));
+  const batch = addresses.slice(cursor, cursor + limit);
+  const mismatches = [];
+  let sourceMessages = 0;
+  let d1Messages = 0;
+  for (const address of batch) {
+    const result = await migrateLegacyMailbox(env, address);
+    sourceMessages += result.sourceMessages;
+    d1Messages += result.d1Messages;
+    // A current delivery may arrive in D1 while this batch is running, so a
+    // higher D1 count is valid; a lower one is the only migration failure.
+    if (result.d1Messages < result.sourceMessages) {
+      mismatches.push({ address, legacyMessages: result.sourceMessages, d1Messages: result.d1Messages });
+    }
+  }
+  const nextCursor = cursor + batch.length;
+  return {
+    ok: mismatches.length === 0,
+    totalAddresses: addresses.length,
+    cursor,
+    processedAddresses: batch.length,
+    nextCursor: nextCursor < addresses.length ? nextCursor : null,
+    complete: nextCursor >= addresses.length,
+    sourceMessages,
+    d1Messages,
+    verifiedAddresses: batch.length - mismatches.length,
+    recoveryArchiveExpiresAt: !isLegacyMailboxMode(env) && batch.length ? new Date(Date.now() + LEGACY_RECOVERY_TTL_SECONDS * 1000).toISOString() : null,
+    mismatches,
+  };
 }
 
 // ---- Konfigurasi publik (dipakai frontend untuk tema/PIN/portal) ----
@@ -373,6 +694,7 @@ function publicConfig(env, settings, domains) {
     portalNote: settings.access.portalNote || "",
     siteUrl: (settings.seo && settings.seo.siteUrl) || env.SITE_URL || "",
     adsensePubId: (settings.seo && settings.seo.adsensePubId) || env.ADSENSE_PUB_ID || "",
+    turnstileSiteKey: env.TURNSTILE_SITE_KEY || "",
   };
 }
 
@@ -380,6 +702,10 @@ function publicConfig(env, settings, domains) {
 function adsenseHead(cfg) {
   if (!cfg.adsensePubId) return "";
   return `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${cfg.adsensePubId}" crossorigin="anonymous"></script>`;
+}
+function turnstileHead(cfg) {
+  if (!cfg.turnstileSiteKey) return "";
+  return `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>`;
 }
 function googleTagHead() {
   return `<!-- Google tag (gtag.js) -->
@@ -402,6 +728,7 @@ function renderPage(tpl, env, settings, domains, extra = {}) {
     .replace(/__SITE_URL__/g, siteUrl)
     .replace(/__ADSENSE_PUB__/g, cfg.adsensePubId || "")
     .replace(/__ADSENSE_HEAD__/g, adsenseHead(cfg))
+    .replace(/__TURNSTILE_HEAD__/g, turnstileHead(cfg))
     .replace(/__GOOGLE_TAG__/g, googleTagHead())
     .replace(/__API_BASE__/g, "")
     .replace(/__DEMO_MODE__/g, "false");
@@ -492,20 +819,25 @@ function postsIndexKey(locale) {
   return locale === "en" ? POSTS_INDEX : `${POSTS_INDEX}:${locale}`;
 }
 async function getPostsIndex(env, locale = "en") {
+  const fallback = locale === "en"
+    ? englishBlogPosts()
+    : localizedBlogPosts(locale).map((p) => ({ slug: p.slug, title: p.title, desc: p.desc, date: p.date }));
   try {
     const raw = await env.TEMPMAIL_KV.get(postsIndexKey(locale));
-    const a = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(a) && a.length) return a;
+    const stored = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(stored) && stored.length) {
+      const storedSlugs = new Set(stored.map((p) => typeof p === "string" ? p : p.slug).filter(Boolean));
+      return [...stored, ...fallback.filter((p) => !storedSlugs.has(p.slug))];
+    }
   } catch {}
-  return locale === "en" ? [] : localizedBlogPosts(locale).map((p) => ({ slug: p.slug, title: p.title, desc: p.desc, date: p.date }));
+  return fallback;
 }
 async function getPost(env, slug, locale = "en") {
-  if (locale !== "en") return localizedBlogPost(locale, slug);
   try {
     const raw = await env.TEMPMAIL_KV.get(postKey(locale, slug));
     if (raw) return JSON.parse(raw);
   } catch {}
-  return null;
+  return locale === "en" ? englishBlogPost(slug) : localizedBlogPost(locale, slug);
 }
 async function savePost(env, post, locale = "en") {
   const slug = slugify(post.slug || post.title);
@@ -595,16 +927,17 @@ export default {
         date: new Date().toISOString(),
       };
 
-      const inbox = await readInbox(env, to);
-      inbox.push(record);
-      await writeInbox(env, to, inbox, settings.cleanup?.maxPerInbox);
-      await addAddressToIndex(env, to);
+      await storeMessage(env, record, settings.cleanup?.maxPerInbox);
       await logTraffic(env, { type: "mail", detail: `${record.from} → ${to}: ${record.subject}` });
 
-      // Auto-forward + notifikasi bot (jangan blokir penyimpanan)
+      // Forwarding, bot notifications, and live signals never delay durable
+      // storage. The client fetches D1 after receiving the small hub event.
       const after = (async () => {
-        await handleForward(env, message, settings, to);
-        await notify(env, settings, record);
+        await Promise.all([
+          handleForward(env, message, settings, to),
+          notify(env, settings, record),
+          publishInboxUpdate(env, to),
+        ]);
       })();
       if (ctx && ctx.waitUntil) ctx.waitUntil(after); else await after;
     } catch (err) {
@@ -626,6 +959,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const canonical = canonicalProductionUrl(url);
+      if (canonical) return Response.redirect(canonical.toString(), 308);
       const { locale, rest } = parseLocale(url.pathname);
       const ip = clientIp(request);
       const settings = await getSettings(env);
@@ -657,94 +992,87 @@ export default {
         return json({ domains });
       }
 
+      if (url.pathname === "/api/session") {
+        if (request.method === "GET") return json({ ok: await hasInboxSession(request, env) });
+        if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
+        let body = {};
+        try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid JSON" }, 400); }
+        const verification = await verifyTurnstile(env, String(body.token || ""), ip);
+        if (!verification.ok) {
+          await logTraffic(env, { type: "turnstile", ip, detail: `Inbox verification failed: ${verification.error}` });
+          return json({ ok: false, error: verification.error }, 403);
+        }
+        return jsonWithCookie({ ok: true }, inboxSessionCookie(await createInboxSession(env)));
+      }
+
       // ---- Unlock website access (server-side, PIN never leaks into the HTML) ----
       if (url.pathname === "/api/unlock") {
         const pin = (url.searchParams.get("pin") || "").trim();
         const ok = !settings.access.requirePin || pin === String(settings.access.sitePin || "").trim();
         if (!ok) {
-          await logTraffic(env, { type: "auth", detail: `Wrong PIN from ${ip || "unknown"}` });
-        } else {
-          // Correct PIN on the entry screen → log the new IP that successfully entered the site
-          const country = request.cf && request.cf.country;
-          await logVisit(env, ip, country, {
-            prefix: "unlk:",
-            detail: `New IP entered site (correct PIN): ${ip || "unknown"}${country ? " (" + country + ")" : ""}`,
-          });
+          await logTraffic(env, { type: "auth", ip, detail: `Wrong PIN from ${ip || "unknown"}` });
         }
         return json({ ok });
       }
 
-      // ---- Diagnostik ----
+      // ---- Owner-only diagnostics ----
       if (url.pathname === "/api/debug") {
-        let total = 0, kvError = null, addrs = [];
+        if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
+        let total = 0, storageError = null, addrs = [];
         try {
           addrs = await getAddressIndex(env);
           for (const a of addrs) total += (await readInbox(env, a)).length;
-        } catch (e) { kvError = e.message; }
+        } catch (e) { storageError = e.message; }
         return json({
-          ok: true, version: "3.0-premium", domains, kvBound: !!env.TEMPMAIL_KV,
-          kvError, totalMessages: total, knownAddresses: addrs.slice(-10),
+          ok: true, version: "4.0-d1", domains, kvBound: !!env.TEMPMAIL_KV, d1Bound: !!env.TEMPMAIL_DB,
+          mailboxStorage: isLegacyMailboxMode(env) ? "kv" : "d1", storageError, totalMessages: total, knownAddresses: addrs.slice(-10),
           dashboardPasswordLength: dashboardPassword(env).length,
         });
       }
 
-      // ---- Rate limit untuk inbox publik ----
+      // ---- Browser inbox reads (verified browser session required) ----
       if (url.pathname === "/api/messages") {
-        const rl = await checkRateLimit(env, settings, ip);
-        if (!rl.ok) {
-          await logTraffic(env, { type: "ratelimit", detail: `Rate limit ${ip} (${rl.count} req)` });
-          return json({ messages: [], error: "Rate limit exceeded" }, 429);
-        }
+        if (!(await hasInboxSession(request, env))) return json({ messages: [], error: "Inbox verification required" }, 401);
         const address = normalizeAddress(url.searchParams.get("address"));
         if (!address || !isAllowedAddress(address, domains)) return json({ messages: [] });
         try {
           const messages = (await readInbox(env, address)).map((m) => withKey(m, address));
           messages.sort((a, b) => new Date(b.date) - new Date(a.date));
           return json({ messages });
-        } catch (kvErr) {
-          return json({ messages: [], error: kvErr.message }, 200);
+        } catch (storageError) {
+          return json({ messages: [], error: storageError.message }, 500);
         }
       }
 
-      // ---- Realtime long-poll: balas SEKETIKA saat ada email baru ----
-      if (url.pathname === "/api/poll") {
+      // Each address has one hibernating Durable Object hub. The endpoint is
+      // session protected before the Worker proxies the upgrade to that hub.
+      if (url.pathname === "/api/live") {
+        if (!(await hasInboxSession(request, env))) return json({ ok: false, error: "Inbox verification required" }, 401);
         const address = normalizeAddress(url.searchParams.get("address"));
-        if (!address || !isAllowedAddress(address, domains)) return json({ messages: [], count: 0, changed: false });
-        const sinceRaw = parseInt(url.searchParams.get("since") || "0", 10);
-        const baseline = Number.isFinite(sinceRaw) ? sinceRaw : 0;
-        const deadline = Date.now() + 25000; // tahan koneksi maksimal 25 dtk
-        const pack = (inbox) => {
-          const list = inbox.map((m) => withKey(m, address));
-          list.sort((a, b) => new Date(b.date) - new Date(a.date));
-          return list;
-        };
-        while (true) {
-          const inbox = await readInbox(env, address);
-          if (inbox.length !== baseline || Date.now() >= deadline) {
-            return json({ messages: pack(inbox), count: inbox.length, changed: inbox.length !== baseline });
-          }
-          await new Promise((r) => setTimeout(r, 900));
-        }
+        if (!address || !isAllowedAddress(address, domains)) return json({ ok: false, error: "Invalid address" }, 400);
+        if (request.headers.get("Upgrade") !== "websocket") return json({ ok: false, error: "WebSocket upgrade required" }, 426);
+        if (!env.INBOX_HUB) return json({ ok: false, error: "Inbox live service unavailable" }, 503);
+        return env.INBOX_HUB.get(env.INBOX_HUB.idFromName(address)).fetch(request);
       }
 
       if (url.pathname === "/api/delete") {
         if (request.method !== "DELETE" && request.method !== "GET") return json({ ok: false, error: "Method not allowed" }, 405);
+        if (!(await hasInboxSession(request, env))) return json({ ok: false, error: "Inbox verification required" }, 401);
         const key = url.searchParams.get("key");
         const address = normalizeAddress(url.searchParams.get("address"));
         if (!key || !address || !isAllowedAddress(address, domains)) return json({ ok: false, error: "Invalid params" }, 400);
         const { address: keyAddr, id } = parseKey(key);
         if (keyAddr !== address) return json({ ok: false, error: "Forbidden" }, 403);
-        const inbox = await readInbox(env, address);
-        await writeInbox(env, address, inbox.filter((m) => m.id !== id), settings.cleanup?.maxPerInbox);
+        await deleteStoredMessage(env, address, id, settings.cleanup?.maxPerInbox);
         return json({ ok: true });
       }
 
       if (url.pathname === "/api/clear") {
         if (request.method !== "DELETE" && request.method !== "GET") return json({ ok: false, error: "Method not allowed" }, 405);
+        if (!(await hasInboxSession(request, env))) return json({ ok: false, error: "Inbox verification required" }, 401);
         const address = normalizeAddress(url.searchParams.get("address"));
         if (!address || !isAllowedAddress(address, domains)) return json({ ok: false, error: "Invalid params" }, 400);
-        await env.TEMPMAIL_KV.delete(INBOX_PREFIX + address);
-        await removeAddressFromIndex(env, address);
+        await clearStoredMailbox(env, address);
         return json({ ok: true });
       }
 
@@ -753,8 +1081,6 @@ export default {
       // =============================================================
       if (url.pathname.startsWith("/api/v1/")) {
         if (!checkApiKey(url, request, settings)) return json({ ok: false, error: "Invalid or missing API key" }, 401);
-        const rl = await checkRateLimit(env, settings, ip);
-        if (!rl.ok) return json({ ok: false, error: "Rate limit exceeded" }, 429);
 
         if (url.pathname === "/api/v1/inboxes") {
           return json({ ok: true, inboxes: await getAddressIndex(env) });
@@ -781,13 +1107,10 @@ export default {
       if (url.pathname === "/api/admin/messages") {
         if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
         try {
-          const addrs = await getAddressIndex(env);
-          const messages = [];
-          for (const a of addrs) for (const m of await readInbox(env, a)) messages.push(withKey(m, a));
-          messages.sort((a, b) => new Date(b.date) - new Date(a.date));
+          const messages = await readAllMessages(env);
           return json({ ok: true, total: messages.length, messages });
-        } catch (kvErr) {
-          return json({ ok: false, messages: [], error: kvErr.message }, 500);
+        } catch (storageError) {
+          return json({ ok: false, messages: [], error: storageError.message }, 500);
         }
       }
 
@@ -796,18 +1119,13 @@ export default {
         const key = url.searchParams.get("key");
         const { address, id } = parseKey(key);
         if (!key || !address) return json({ ok: false, error: "Invalid key" }, 400);
-        const inbox = await readInbox(env, address);
-        await writeInbox(env, address, inbox.filter((m) => m.id !== id), settings.cleanup?.maxPerInbox);
+        await deleteStoredMessage(env, address, id, settings.cleanup?.maxPerInbox);
         return json({ ok: true });
       }
 
       if (url.pathname === "/api/admin/clear") {
         if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
-        const addrs = await getAddressIndex(env);
-        let deleted = 0;
-        for (const a of addrs) { deleted += (await readInbox(env, a)).length; await env.TEMPMAIL_KV.delete(INBOX_PREFIX + a); }
-        await env.TEMPMAIL_KV.delete(ADDR_INDEX_KEY);
-        return json({ ok: true, deleted });
+        return json({ ok: true, deleted: await clearAllStoredMail(env) });
       }
 
       // ---- Settings: GET (read) / POST (save) ----
@@ -827,10 +1145,26 @@ export default {
       // ---- Live traffic log ----
       if (url.pathname === "/api/admin/traffic") {
         if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
-        if (request.method === "DELETE") { await env.TEMPMAIL_KV.delete(TRAFFIC_KEY); return json({ ok: true }); }
-        let arr = [];
-        try { arr = JSON.parse((await env.TEMPMAIL_KV.get(TRAFFIC_KEY)) || "[]"); } catch {}
-        return json({ ok: true, traffic: Array.isArray(arr) ? arr : [] });
+        const db = requireD1(env);
+        if (request.method === "DELETE") { await db.prepare("DELETE FROM traffic_events").run(); return json({ ok: true }); }
+        const { results = [] } = await db.prepare("SELECT occurred_at AS t, type, ip, detail FROM traffic_events ORDER BY id DESC LIMIT ?").bind(MAX_TRAFFIC).all();
+        return json({ ok: true, traffic: results });
+      }
+
+      // Owner-run, repeatable batches for the KV → D1 cutover. Replaying the
+      // final batches after MAIL_STORAGE_MODE=d1 arms seven-day TTLs on the
+      // legacy inbox keys; no normal D1-mode request reads or writes them.
+      if (url.pathname === "/api/admin/migrate-kv") {
+        if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
+        if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
+        let body = {};
+        try { body = await request.json(); } catch {}
+        const result = await migrateLegacyBatch(env, body.cursor ?? url.searchParams.get("cursor"), body.limit ?? url.searchParams.get("limit"));
+        await logTraffic(env, {
+          type: "migration",
+          detail: `KV→D1 batch ${result.cursor}: ${result.processedAddresses} addresses, ${result.verifiedAddresses} verified${result.complete ? " (complete)" : ""}`,
+        });
+        return json(result, result.ok ? 200 : 409);
       }
 
       // ---- Manual cleanup ----
@@ -854,7 +1188,7 @@ export default {
       }
 
       // ---- Test inbound: inject a fake email into an inbox (same path as the email handler) ----
-      // Lets the owner verify the inbox UI, storage, and realtime polling without sending real mail.
+      // Lets the owner verify the inbox UI, storage, and realtime WebSocket without sending real mail.
       if (url.pathname === "/api/admin/test-inbound") {
         if (!isOwner(url, env)) return json({ ok: false, error: "Unauthorized" }, 401);
         let body = {};
@@ -871,13 +1205,12 @@ export default {
           subject: body.subject || "Your verification code is 123456",
           text: body.text || "This is a test email. Your one-time code is 123456. If you can read this in the inbox, receiving works.",
           html: body.html || "",
-          date: new Date().toISOString(),
+          date: body.date || new Date().toISOString(),
         };
-        const inbox = await readInbox(env, to);
-        inbox.push(record);
-        await writeInbox(env, to, inbox, settings.cleanup?.maxPerInbox);
-        await addAddressToIndex(env, to);
+        await storeMessage(env, record, settings.cleanup?.maxPerInbox);
         await logTraffic(env, { type: "mail", detail: `TEST inbound ${record.from} → ${to}: ${record.subject}` });
+        const update = publishInboxUpdate(env, to);
+        if (ctx && ctx.waitUntil) ctx.waitUntil(update); else await update;
         return json({ ok: true, address: to, record });
       }
 
@@ -1003,16 +1336,19 @@ ${guides}
       if (url.pathname === "/sitemap.xml") {
         // Paths that have localized versions in every LIVE locale (multiplied by locale below).
         const localizedPaths = ["/", "/temp-mail-generator", "/disposable-email", "/10-minute-mail", "/fake-email-generator", "/temporary-email-service", "/burner-email", "/temp-gmail", "/anonymous-email", "/alternatives/guerrilla-mail", "/alternatives/mailinator", "/blog", "/about", "/privacy", "/terms", "/contact", "/disclaimer"];
-        let slugs = [];
-        try { const raw = await env.TEMPMAIL_KV.get("posts:index"); if (raw) { const idx = JSON.parse(raw); if (Array.isArray(idx)) slugs = idx.map((p) => (typeof p === "string" ? p : p && p.slug)).filter(Boolean); } } catch {}
-        const fallbackSlugs = localizedBlogPosts("de").map((p) => p.slug);
-        slugs = [...new Set([...slugs, ...fallbackSlugs])];
+        const blogPathsByLocale = await Promise.all(LIVE_LOCALES.map(async (loc) => {
+          const posts = await getPostsIndex(env, loc);
+          const slugs = [...new Set(posts.map((p) => typeof p === "string" ? p : p.slug).filter(Boolean))];
+          const resolved = await Promise.all(slugs.map(async (slug) => await getPost(env, slug, loc) ? localizedPath(loc, `/blog/${slug}`) : null));
+          return resolved.filter(Boolean);
+        }));
         const localizedPlatformUrls = LIVE_LOCALES
           .flatMap((loc) => PLATFORM_LANDING_PATHS.map((p) => localizedPath(loc, p)))
           .filter((p) => LANDING_PAGES[p]);
         // Localized pages × live locales, plus platform pages for locales whose content exists.
         const urls = [...new Set([
-          ...LIVE_LOCALES.flatMap((loc) => [...localizedPaths, ...slugs.map((s) => `/blog/${s}`)].map((p) => localizedPath(loc, p))),
+          ...LIVE_LOCALES.flatMap((loc) => localizedPaths.map((p) => localizedPath(loc, p))),
+          ...blogPathsByLocale.flat(),
           ...PLATFORM_LANDING_PATHS,
           ...localizedPlatformUrls,
         ])];
@@ -1095,19 +1431,12 @@ ${guides}
       if (publicSite && (rest === "/" || rest === "/index.html")) {
         // Banned IP → show the "Access Blocked" page instead of the normal website
         if (isBannedIp(settings, ip)) {
-          await logVisit(env, ip, request.cf && request.cf.country, {
-            prefix: "banpg:",
-            type: "banned",
-            detail: `Blocked IP tried to open site: ${ip || "unknown"}`,
-          });
+          await logTraffic(env, { type: "banned", ip, detail: `Blocked IP tried to open site: ${ip || "unknown"}` });
           return new Response(bannedPageHtml(settings, ip), {
             status: 403,
             headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
           });
         }
-        // Catat kunjungan IP ke Live Traffic console admin (non-blocking)
-        const visitJob = logVisit(env, ip, request.cf && request.cf.country);
-        if (ctx && ctx.waitUntil) ctx.waitUntil(visitJob); else await visitJob;
         const html = renderHomePage(PAGE, env, settings, domains, locale, "/");
         return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
       }

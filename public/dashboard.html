@@ -264,7 +264,7 @@ textarea.inp{min-height:72px;resize:vertical}
         <div class="card"><div class="card-head"><h3>Incoming Mail — Last 14 Days</h3><span class="state">per day</span></div><div class="card-body"><div class="bars" id="bars"></div></div></div>
         <div class="card"><div class="card-head"><h3>Top Addresses</h3></div><div class="card-body"><ul class="rank" id="rank"></ul></div></div>
       </section>
-      <div class="card"><div class="card-head"><div><h3>Live Traffic</h3><div class="sub">IP visits, incoming email, forwards, and security events in real time.</div></div><button class="btn danger-sm" id="clearTrafficBtn">Clear Log</button></div>
+      <div class="card"><div class="card-head"><div><h3>Live Traffic</h3><div class="sub">Incoming email, forwards, and security events in real time.</div></div><button class="btn danger-sm" id="clearTrafficBtn">Clear Log</button></div>
         <div class="tbl-wrap" style="max-height:330px"><table><thead><tr><th>Time</th><th>Type</th><th>Detail</th></tr></thead><tbody id="trafficBody"></tbody></table><div class="empty" id="trafficEmpty" style="display:none"><div class="empty-icon">!</div><h4>No activity yet</h4></div></div>
       </div>
     </div>
@@ -307,10 +307,7 @@ textarea.inp{min-height:72px;resize:vertical}
 
     <!-- SECURITY -->
     <div class="tab-pane" id="tab-security">
-      <div class="card"><div class="card-head"><h3>Rate Limit</h3></div><div class="card-body">
-        <div class="switch"><div><div class="t">Enable Rate Limit</div><div class="d">Limit the number of requests per IP.</div></div><div class="tg" id="rlEnabled"></div></div>
-        <div class="row"><div class="field"><label>Max requests</label><input class="inp" id="rlMax" type="number" min="10" /></div><div class="field"><label>Window (seconds, min 60)</label><input class="inp" id="rlWindow" type="number" min="60" /></div></div>
-      </div></div>
+      <div class="card"><div class="card-head"><h3>Edge Rate Limits</h3></div><div class="card-body"><div class="sub">Rate limiting is enforced at Cloudflare’s edge, not in Worker KV. Configure the Inbox, Live, Unlock, and API rules in Cloudflare WAF.</div></div></div>
       <div class="card"><div class="card-head"><h3>Banned IP</h3></div><div class="card-body">
         <div id="bannedList"></div>
         <div style="display:flex;gap:10px;margin-top:6px"><input class="inp" id="newIp" placeholder="e.g. 1.2.3.4" /><button class="btn primary" id="addIpBtn">Block IP</button></div>
@@ -403,7 +400,7 @@ function linkifyText(t){const e=esc(t||'');const re=/((?:https?:\/\/)?(?:www\.)?
 function api(path,opt){return fetch(API_BASE+path+(path.includes('?')?'&':'?')+'pw='+encodeURIComponent(PW),opt)}
 
 // ---- Tabs ----
-const titles={overview:['Overview','System stats & activity overview.'],mail:['Mail','All email received into the database.'],domains:['Domains','Manage multi-domain & subdomain.'],forward:['Auto Forward','Forward email automatically to Gmail/Outlook.'],security:['Security','Rate limit, banned IP, and blocked senders.'],integrations:['Bot & API','Webhooks, API keys, and Telegram bot.'],appearance:['Appearance','Name, logo, colors, and language.'],access:['Access / Portal','Lock website access with a PIN.'],cleanup:['Auto Cleanup','Delete old emails automatically.']};
+const titles={overview:['Overview','System stats & activity overview.'],mail:['Mail','All email received into the database.'],domains:['Domains','Manage multi-domain & subdomain.'],forward:['Auto Forward','Forward email automatically to Gmail/Outlook.'],security:['Security','Edge rate limits, banned IP, and blocked senders.'],integrations:['Bot & API','Webhooks, API keys, and Telegram bot.'],appearance:['Appearance','Name, logo, colors, and language.'],access:['Access / Portal','Lock website access with a PIN.'],cleanup:['Auto Cleanup','Delete old emails automatically.']};
 function showTab(t){document.querySelectorAll('.navi').forEach(n=>n.classList.toggle('active',n.dataset.tab===t));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('show',p.id==='tab-'+t));$('pageTitle').textContent=titles[t][0];$('pageSub').textContent=titles[t][1];$('side').classList.remove('open');}
 document.querySelectorAll('.navi').forEach(n=>n.onclick=()=>showTab(n.dataset.tab));
 $('menuBtn').onclick=()=>$('side').classList.toggle('open');
@@ -452,8 +449,6 @@ function renderSettings(){
   $('fwdRules').innerHTML=(settings.forwarding.rules||[]).map((r,i)=>'<div class="list-item"><span class="grow">'+esc(r.match==='all'?'All emails':(r.match+': '+r.value))+' <small>→ '+esc(r.to)+'</small></span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No rules yet.</span>';
   $('fwdRules').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.forwarding.rules.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
   // Security
-  tg($('rlEnabled'),settings.security.rateLimit.enabled,v=>settings.security.rateLimit.enabled=v);
-  $('rlMax').value=settings.security.rateLimit.max;$('rlWindow').value=settings.security.rateLimit.windowSec;
   $('bannedList').innerHTML=(settings.security.bannedIps||[]).map((ip,i)=>'<div class="list-item"><span class="grow">'+esc(ip)+'</span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No IPs blocked.</span>';
   $('bannedList').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.security.bannedIps.splice(+b.dataset.i,1);renderSettings();scheduleSave();});
   $('blockedList').innerHTML=(settings.security.blockedSenders||[]).map((s,i)=>'<div class="list-item"><span class="grow">'+esc(s)+'</span><button class="btn danger-sm" data-i="'+i+'">Delete</button></div>').join('')||'<span class="hh">No senders blocked.</span>';
@@ -480,8 +475,6 @@ function renderSettings(){
 
 // Bind text inputs -> settings
 function bind(id,setter){const el=$(id);el.addEventListener('input',()=>{setter(el.value);scheduleSave();});}
-bind('rlMax',v=>settings.security.rateLimit.max=parseInt(v||'0',10)||0);
-bind('rlWindow',v=>settings.security.rateLimit.windowSec=Math.max(60,parseInt(v||'0',10)||60));
 bind('tgToken',v=>settings.telegram.botToken=v.trim());
 bind('tgChat',v=>settings.telegram.chatId=v.trim());
 bind('apName',v=>settings.appearance.siteName=v);

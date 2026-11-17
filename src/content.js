@@ -140,10 +140,10 @@ function breadcrumbHtml(rest, locale, title) {
   items.push(`<strong>${esc(title)}</strong>`);
   return `<nav class="breadcrumbs" aria-label="Breadcrumb">${items.join("<span>/</span>")}</nav>`;
 }
-function articleSchema(rest,locale,title,desc,datePublished){
+function articleSchema(rest,locale,title,desc,datePublished,dateModified){
   const u="__SITE_URL__"+localizedPath(locale,rest);
   const d=datePublished||"2026-01-01";
-  return ldScript({"@context":"https://schema.org","@type":"Article",headline:ldClean(title),description:ldClean(desc),inLanguage:(LOCALE_HREFLANG[locale]||locale),datePublished:d,dateModified:d,mainEntityOfPage:u,image:"__SITE_URL__/logo.png",author:{"@type":"Organization",name:"Temp Mail"},publisher:{"@type":"Organization",name:"Temp Mail",logo:{"@type":"ImageObject",url:"__SITE_URL__/logo.png"}}});
+  return ldScript({"@context":"https://schema.org","@type":"Article",headline:ldClean(title),description:ldClean(desc),inLanguage:(LOCALE_HREFLANG[locale]||locale),datePublished:d,dateModified:dateModified||d,mainEntityOfPage:u,image:"__SITE_URL__/logo.png",author:{"@type":"Organization",name:"Open Temp Mail"},publisher:{"@type":"Organization",name:"Open Temp Mail",logo:{"@type":"ImageObject",url:"__SITE_URL__/logo.png"}}});
 }
 
 function languageSwitcher(rest, locale) {
@@ -154,13 +154,13 @@ function languageSwitcher(rest, locale) {
 }
 
 // Full-page HTML template. `path` is the concrete URL path for canonical/OG.
-export function layout({ path, title, desc, bodyHtml, noindex, locale = "en", rest = path, type, datePublished }) {
+export function layout({ path, title, desc, bodyHtml, noindex, locale = "en", rest = path, type, datePublished, dateModified }) {
   const robots = noindex ? "noindex, follow" : "index, follow, max-image-preview:large";
   const ui = localeStrings(locale);
   const home = localizedPath(locale, "/");
   const concretePath = localizedPath(locale, rest || path || "/");
   const schema = noindex ? "" : [
-    type === "blog" ? articleSchema(rest || path || "/", locale, title, desc, datePublished) : "",
+    type === "blog" ? articleSchema(rest || path || "/", locale, title, desc, datePublished, dateModified) : "",
     breadcrumbSchema(rest || path || "/", locale, title),
     faqSchemaFromBody(bodyHtml || ""),
   ].filter(Boolean).join("\n");
@@ -174,7 +174,7 @@ export function layout({ path, title, desc, bodyHtml, noindex, locale = "en", re
 <meta name="robots" content="${robots}" />
 <link rel="canonical" href="__SITE_URL__${concretePath}" />
 __HREFLANG_LINKS__
-<meta property="og:type" content="website" />
+<meta property="og:type" content="${type === "blog" ? "article" : "website"}" />
 <meta property="og:site_name" content="Temp Mail" />
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(desc)}" />
@@ -438,7 +438,7 @@ ${AD}
 ${post.bodyHtml || ""}
 ${relatedBlock}
 ${ctaFor(locale)}`;
-  return layout({ path: localizedPath(locale, rest), rest, locale, title: post.title, desc: post.desc || "", bodyHtml: body, type: "blog", datePublished: post.date });
+  return layout({ path: localizedPath(locale, rest), rest, locale, title: post.title, desc: post.desc || "", bodyHtml: body, type: "blog", datePublished: post.date, dateModified: post.updated || post.date });
 }
 
 export function notFoundPage(opts = {}) {

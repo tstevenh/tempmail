@@ -6,12 +6,14 @@
   "scripts": {
     "start": "wrangler dev --port 5000",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "node --test test/worker.integration.test.mjs"
   },
   "dependencies": {
     "postal-mime": "^2.7.4"
   },
   "devDependencies": {
-    "wrangler": "^3.114.17"
+    "wrangler": "^3.114.17",
+    "ws": "^8.18.0"
   }
 }

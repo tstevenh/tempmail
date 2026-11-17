@@ -1,0 +1,217 @@
+{
+  "keyword_count": 25,
+  "shortlist_count": 21,
+  "serp_checked_count": 5,
+  "top_shortlist": [
+    {
+      "keyword": "temporary email services",
+      "cluster": "best-temp-mail",
+      "search_volume": 40500,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": 2.67,
+      "excluded_existing_cluster": "no",
+      "score": 174
+    },
+    {
+      "keyword": "burner email address",
+      "cluster": "what-is-a-disposable-email-address",
+      "search_volume": 27100,
+      "competition": "LOW",
+      "competition_index": 2,
+      "cpc": 2.29,
+      "excluded_existing_cluster": "no",
+      "score": 167
+    },
+    {
+      "keyword": "throwaway email address",
+      "cluster": "what-is-a-disposable-email-address",
+      "search_volume": 14800,
+      "competition": "LOW",
+      "competition_index": 1,
+      "cpc": 2.23,
+      "excluded_existing_cluster": "no",
+      "score": 160
+    },
+    {
+      "keyword": "best disposable email",
+      "cluster": "best-temp-mail",
+      "search_volume": 1900,
+      "competition": "LOW",
+      "competition_index": 3,
+      "cpc": 2.79,
+      "excluded_existing_cluster": "no",
+      "score": 157
+    },
+    {
+      "keyword": "best temp mail",
+      "cluster": "best-temp-mail",
+      "search_volume": 1900,
+      "competition": "LOW",
+      "competition_index": 3,
+      "cpc": 2.79,
+      "excluded_existing_cluster": "no",
+      "score": 157
+    },
+    {
+      "keyword": "best temporary email",
+      "cluster": "best-temp-mail",
+      "search_volume": 1900,
+      "competition": "LOW",
+      "competition_index": 3,
+      "cpc": 2.79,
+      "excluded_existing_cluster": "no",
+      "score": 157
+    },
+    {
+      "keyword": "create temporary email address",
+      "cluster": "how-to-create-a-temporary-email",
+      "search_volume": 1000,
+      "competition": "LOW",
+      "competition_index": 10,
+      "cpc": 2.95,
+      "excluded_existing_cluster": "no",
+      "score": 120
+    },
+    {
+      "keyword": "email verification code",
+      "cluster": "temp-mail-for-otp-verification-codes",
+      "search_volume": 480,
+      "competition": "LOW",
+      "competition_index": 9,
+      "cpc": 4.69,
+      "excluded_existing_cluster": "no",
+      "score": 111
+    },
+    {
+      "keyword": "temporary email for verification",
+      "cluster": "temp-mail-for-otp-verification-codes",
+      "search_volume": 210,
+      "competition": "LOW",
+      "competition_index": 3,
+      "cpc": 3.11,
+      "excluded_existing_cluster": "no",
+      "score": 104
+    },
+    {
+      "keyword": "what is a disposable email address",
+      "cluster": "what-is-a-disposable-email-address",
+      "search_volume": 140,
+      "competition": "LOW",
+      "competition_index": 1,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 100
+    },
+    {
+      "keyword": "how to create a temporary email",
+      "cluster": "how-to-create-a-temporary-email",
+      "search_volume": 210,
+      "competition": "LOW",
+      "competition_index": 12,
+      "cpc": 3.1,
+      "excluded_existing_cluster": "no",
+      "score": 99
+    },
+    {
+      "keyword": "how to make a temporary email",
+      "cluster": "how-to-create-a-temporary-email",
+      "search_volume": 170,
+      "competition": "LOW",
+      "competition_index": 9,
+      "cpc": 3.89,
+      "excluded_existing_cluster": "no",
+      "score": 98
+    },
+    {
+      "keyword": "is temp mail safe",
+      "cluster": "is-temp-mail-safe",
+      "search_volume": 110,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 97
+    },
+    {
+      "keyword": "what is temp mail",
+      "cluster": "what-is-a-disposable-email-address",
+      "search_volume": 50,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 88
+    },
+    {
+      "keyword": "receive verification code online",
+      "cluster": "temp-mail-for-otp-verification-codes",
+      "search_volume": 70,
+      "competition": "LOW",
+      "competition_index": 14,
+      "cpc": 4.74,
+      "excluded_existing_cluster": "no",
+      "score": 85
+    },
+    {
+      "keyword": "how to get a temporary email",
+      "cluster": "how-to-create-a-temporary-email",
+      "search_volume": 50,
+      "competition": "LOW",
+      "competition_index": 8,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 83
+    },
+    {
+      "keyword": "receive otp online",
+      "cluster": "temp-mail-for-otp-verification-codes",
+      "search_volume": 30,
+      "competition": "LOW",
+      "competition_index": 7,
+      "cpc": 4.36,
+      "excluded_existing_cluster": "no",
+      "score": 80
+    },
+    {
+      "keyword": "are temporary emails safe",
+      "cluster": "is-temp-mail-safe",
+      "search_volume": 20,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 79
+    },
+    {
+      "keyword": "make a temp email",
+      "cluster": "how-to-create-a-temporary-email",
+      "search_volume": 20,
+      "competition": "LOW",
+      "competition_index": 5,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 76
+    },
+    {
+      "keyword": "disposable email meaning",
+      "cluster": "what-is-a-disposable-email-address",
+      "search_volume": 10,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 74
+    },
+    {
+      "keyword": "temp mail for otp",
+      "cluster": "temp-mail-for-otp-verification-codes",
+      "search_volume": 10,
+      "competition": "LOW",
+      "competition_index": 0,
+      "cpc": "",
+      "excluded_existing_cluster": "no",
+      "score": 74
+    }
+  ]
+}

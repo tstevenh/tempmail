@@ -32,6 +32,13 @@ SITE_URL = "https://opentempmail.com"
 # Google AdSense publisher id WITHOUT the "ca-" prefix, e.g. "pub-1234567890123456".
 # Leave empty until approved — ad units and ads.txt stay inactive while blank.
 ADSENSE_PUB_ID = ""
+# Public key only. Set TURNSTILE_SECRET and INBOX_SESSION_SECRET with
+# `wrangler secret put`; never add either secret to this file.
+TURNSTILE_SITE_KEY = "0x4AAAAAADzIDOck7Ooz2o-C"
+TURNSTILE_EXPECTED_HOSTNAME = "opentempmail.com"
+# Set to "kv" for the pre-cutover migration release, then switch to "d1"
+# after /api/admin/migrate-kv reports matching counts.
+MAIL_STORAGE_MODE = "d1"
 
 # Auto Cleanup terjadwal: jalan tiap 6 jam (atur di dashboard → Auto Cleanup).
 [triggers]
@@ -40,6 +47,20 @@ crons = ["0 */6 * * *"]
 [[kv_namespaces]]
 binding = "TEMPMAIL_KV"
 id = "d610bae13f5b493d8978947a2b8f6571"
+
+[[d1_databases]]
+binding = "TEMPMAIL_DB"
+database_name = "tempmail"
+database_id = "1f6d6e4f-0974-4973-8441-46cf11f3b478"
+migrations_dir = "migrations"
+
+[[durable_objects.bindings]]
+name = "INBOX_HUB"
+class_name = "InboxHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["InboxHub"]
 
 [[rules]]
 type = "Text"

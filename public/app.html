@@ -51,6 +51,7 @@
 </script>
 __ADSENSE_HEAD__
 __GOOGLE_TAG__
+__TURNSTILE_HEAD__
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -303,6 +304,12 @@ details.customize summary:hover{color:var(--ink)}
 /* ── lock / restricted dispatch ── */
 .lock{position:fixed;inset:0;z-index:var(--z-lock);display:grid;place-items:center;padding:22px;background:oklch(0.948 0.005 250/.9);backdrop-filter:blur(7px)}
 .lock.hide{display:none}
+.inbox-verify{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px 18px;padding:18px 20px;border-bottom:1px dashed var(--line-2);background:oklch(0.97 0.015 85)}
+.inbox-verify.hide{display:none}
+.inbox-verify strong{display:block;font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.inbox-verify p{margin:4px 0 0;color:var(--ink-faint);font-family:var(--font-text);font-size:15px}
+.inbox-verify #turnstileWidget,.inbox-verify .err{grid-column:1/-1}
+.inbox-verify #turnstileWidget{justify-self:center}
 .lock-card{width:min(420px,100%);background:var(--white);border:2px solid var(--ink);box-shadow:var(--shadow-press);padding:0;border-radius:var(--r-lg);overflow:hidden;text-align:center}
 .lock-band{background:var(--ink);color:var(--white);font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:10px;display:flex;align-items:center;justify-content:center;gap:9px}
 .lock-band .dot{width:7px;height:7px;border-radius:50%;background:var(--stamp-bright)}
@@ -326,6 +333,8 @@ details.customize summary:hover{color:var(--ink)}
   .spotlight{flex-direction:column;align-items:stretch;gap:14px}
   .spotlight .sl-copy{margin-left:0;width:100%}
   .spotlight .sl-code{letter-spacing:.12em}
+  .inbox-verify{grid-template-columns:1fr}
+  .inbox-verify .btn{width:100%}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
 </style>
@@ -430,6 +439,15 @@ details.customize summary:hover{color:var(--ink)}
           <button class="linkbtn" id="clearBtn" style="display:none">Clear all</button>
         </div>
       </div>
+      <section class="inbox-verify hide" id="inboxVerify" aria-labelledby="inboxVerifyTitle">
+        <div>
+          <strong id="inboxVerifyTitle">Open your live inbox</strong>
+          <p>Verify once for this browser session before messages are loaded.</p>
+        </div>
+        <button class="btn primary" id="verifyInboxBtn" type="button">Verify and open inbox</button>
+        <div id="turnstileWidget" hidden></div>
+        <div class="err" id="verifyErr" aria-live="polite"></div>
+      </section>
       <ul class="msg-list" id="list"></ul>
       <div class="listening" id="empty">
         <div class="tape" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
@@ -634,7 +652,7 @@ function mountAds(){if(!SITE.adsensePubId)return;document.querySelectorAll('.ad-
 
 // address
 function setupDomains(){$('domainSelect').innerHTML=CONFIG.domains.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');}
-function setAddress(addr){currentAddress=addr;localStorage.setItem('ym_address',addr);$('addr').textContent=addr;$('addr').classList.remove('placeholder');hideSpotlight();startRealtime();}
+function setAddress(addr){currentAddress=addr;localStorage.setItem('ym_address',addr);$('addr').textContent=addr;$('addr').classList.remove('placeholder');hideSpotlight();resetRealtime();initializeInboxAccess();}
 function buildAddress(){const local=cleanLocal($('localInput').value);const domain=$('domainSelect').value;if(!local)return null;return local+'@'+domain;}
 $('randBtn').onclick=()=>{const local=randName();$('localInput').value=local;setAddress(local+'@'+$('domainSelect').value);toast('New address ready');};
 $('localInput').addEventListener('input',e=>{const c=cleanLocal(e.target.value);if(e.target.value!==c)e.target.value=c;});
@@ -713,19 +731,54 @@ function openMsg(i){
   else{$('mBody').innerHTML='<div class="text-mail">'+linkifyText(m.text||'(empty message)')+'</div>';}
   $('overlay').classList.add('open');
 }
-$('mDeleteBtn').onclick=async()=>{if(!currentMsgKey)return;await deleteMessage(currentMsgKey,true);$('overlay').classList.remove('open');};
+$('mDeleteBtn').onclick=async()=>{if(!currentMsgKey)return;if(await deleteMessage(currentMsgKey,true))$('overlay').classList.remove('open');};
 $('closeBtn').onclick=()=>$('overlay').classList.remove('open');
 $('overlay').onclick=e=>{if(e.target.id==='overlay')$('overlay').classList.remove('open')};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('overlay').classList.remove('open')});
 async function deleteMessage(key,skip){
   if(!skip&&!confirm('Delete this message?'))return;if(!currentAddress||!key)return;
-  try{await fetch('/api/delete?address='+encodeURIComponent(currentAddress)+'&key='+encodeURIComponent(key),{method:'DELETE'});messages=messages.filter(m=>m._key!==key);if(spotlightKey===key)hideSpotlight();render();toast('Deleted');}catch(e){toast('Could not delete');}
+  const address=currentAddress,token=realtimeToken;
+  try{const r=await fetch('/api/delete?address='+encodeURIComponent(address)+'&key='+encodeURIComponent(key),{method:'DELETE'});if(address!==currentAddress||token!==realtimeToken)return false;if(r.status===401){$('overlay').classList.remove('open');resetRealtime();showInboxVerification();return false;}if(!r.ok)throw new Error('HTTP '+r.status);messages=messages.filter(m=>m._key!==key);if(spotlightKey===key)hideSpotlight();render();toast('Deleted');return true;}catch(e){toast('Could not delete');return false;}
 }
-$('clearBtn').onclick=async()=>{if(!currentAddress||!messages.length)return;if(!confirm('Delete all messages?'))return;try{await fetch('/api/clear?address='+encodeURIComponent(currentAddress),{method:'DELETE'});messages=[];hideSpotlight();render();toast('Inbox cleared');}catch(e){toast('Failed');}};
+$('clearBtn').onclick=async()=>{if(!currentAddress||!messages.length)return;if(!confirm('Delete all messages?'))return;const address=currentAddress,token=realtimeToken;try{const r=await fetch('/api/clear?address='+encodeURIComponent(address),{method:'DELETE'});if(address!==currentAddress||token!==realtimeToken)return;if(r.status===401){resetRealtime();showInboxVerification();return;}if(!r.ok)throw new Error('HTTP '+r.status);messages=[];hideSpotlight();render();toast('Inbox cleared');}catch(e){toast('Failed');}};
 
-// realtime
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-let pollToken=0, primed=false; const seenIds=new Set();
+// Browser session verification runs once per browser session. The signed,
+// HttpOnly cookie is the only credential used by inbox fetches and WebSockets.
+let verificationAttempt=null,verificationGeneration=0,turnstileWidgetId=null;
+async function checkInboxSession(){try{const r=await fetch('/api/session');const d=await r.json();return r.ok&&d.ok;}catch(e){return false;}}
+function showInboxVerification(){$('inboxVerify').classList.remove('hide');$('verifyInboxBtn').disabled=!!verificationAttempt;$('state').textContent='Verification required';}
+function hideInboxVerification(){if(verificationAttempt)cancelVerification();$('inboxVerify').classList.add('hide');$('verifyErr').textContent='';}
+function removeTurnstileWidget(widgetId=turnstileWidgetId){if(widgetId!==null&&window.turnstile){try{window.turnstile.remove(widgetId);}catch(e){}}if(turnstileWidgetId===widgetId)turnstileWidgetId=null;$('turnstileWidget').innerHTML='';$('turnstileWidget').hidden=true;}
+function finishVerification(attempt,result){if(!attempt||attempt.settled)return;attempt.settled=true;if(verificationAttempt===attempt)verificationAttempt=null;removeTurnstileWidget(attempt.widgetId);attempt.resolve(result);}
+function cancelVerification(){verificationGeneration++;const attempt=verificationAttempt;if(attempt)finishVerification(attempt,false);else removeTurnstileWidget();}
+async function mountTurnstile(){
+  if(!SITE.turnstileSiteKey){$('verifyErr').textContent='Inbox verification is not configured. Please try again later.';return false;}
+  if(verificationAttempt)return verificationAttempt.promise;
+  const generation=++verificationGeneration;
+  const attempt={generation,widgetId:null,settled:false,resolve:null,promise:null};verificationAttempt=attempt;
+  attempt.promise=new Promise(resolve=>{attempt.resolve=resolve;
+    let attempts=0;
+    const mount=()=>{
+      if(verificationAttempt!==attempt||attempt.settled)return;
+      if(!window.turnstile){if(++attempts<100)return setTimeout(mount,100);$('verifyErr').textContent='Could not load verification. Please reload this page.';finishVerification(attempt,false);return;}
+      removeTurnstileWidget();$('turnstileWidget').hidden=false;
+      let widgetId=null;try{widgetId=window.turnstile.render('#turnstileWidget',{sitekey:SITE.turnstileSiteKey,callback:async token=>{
+        if(verificationAttempt!==attempt||attempt.generation!==verificationGeneration||attempt.widgetId!==widgetId)return;
+        $('verifyErr').textContent='Verifying…';
+        try{const r=await fetch('/api/session',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Verification failed');
+          if(verificationAttempt===attempt&&attempt.generation===verificationGeneration)finishVerification(attempt,true);
+        }catch(e){if(verificationAttempt!==attempt||attempt.widgetId!==widgetId)return;$('verifyErr').textContent=e.message||'Verification failed. Please try again.';try{window.turnstile.reset(widgetId);}catch(ignore){}}
+      },'error-callback':()=>{if(verificationAttempt!==attempt||attempt.widgetId!==widgetId)return;$('verifyErr').textContent='Verification failed to load. Please try again.';finishVerification(attempt,false);},'expired-callback':()=>{if(verificationAttempt===attempt&&attempt.widgetId===widgetId)$('verifyErr').textContent='Verification expired. Please try again.';}});}catch(e){$('verifyErr').textContent='Could not start verification. Please try again.';finishVerification(attempt,false);return;}
+      attempt.widgetId=widgetId;turnstileWidgetId=widgetId;
+    };mount();
+  });
+  return attempt.promise;
+}
+$('verifyInboxBtn').addEventListener('click',async()=>{const button=$('verifyInboxBtn');if(button.disabled||verificationAttempt)return;button.disabled=true;$('turnstileWidget').hidden=false;const verified=await mountTurnstile();if(verified){hideInboxVerification();await startRealtime({sessionVerified:true});}else{button.disabled=!!verificationAttempt;}});
+
+// Realtime inbox: a hibernating Durable Object broadcasts only an update
+// signal. Every signal refreshes the current D1-backed message list.
+let realtimeToken=0,primed=false,liveSocket=null,liveSocketToken=-1,reconnectTimer=null,fallbackTimer=null,realtimeStartPromise=null,realtimeStartToken=-1;const seenIds=new Set();
 function notifyNew(fresh){const c=$('count');if(c&&c.animate)c.animate([{transform:'scale(1)'},{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:500,easing:'cubic-bezier(.2,.8,.2,1)'});const n=fresh.length;toast(n+(n===1?' new dispatch':' new dispatches'));
   // surface the freshest signal-bearing message in the spotlight
   const withSig=fresh.map(m=>({m,sig:signalFor(m)})).filter(x=>x.sig);
@@ -733,23 +786,39 @@ function notifyNew(fresh){const c=$('count');if(c&&c.animate)c.animate([{transfo
   if(withSig.length)showSpotlight(withSig[0].m);
 }
 function handleIncoming(list,announce){const arr=Array.isArray(list)?list:[];const fresh=arr.filter(m=>m&&m.id&&!seenIds.has(m.id));fresh.forEach(m=>{m._fresh=true;});arr.forEach(m=>{if(m&&m.id)seenIds.add(m.id);});messages=arr;render();if(announce&&primed&&fresh.length)notifyNew(fresh);}
-async function fetchMessages(){if(!currentAddress)return;try{const r=await fetch('/api/messages?address='+encodeURIComponent(currentAddress));if(r.ok){const d=await r.json();messages=d.messages||[];render();}}catch(e){}}
-async function pollLoop(myToken){
-  while(myToken===pollToken&&currentAddress){
-    try{const res=await fetch('/api/poll?address='+encodeURIComponent(currentAddress)+'&since='+messages.length);
-      if(myToken!==pollToken)return;
-      if(res.ok){const d=await res.json();if(myToken!==pollToken)return;handleIncoming(d.messages,true);$('state').innerHTML='<span class="sdot"></span>Live';}
-      else{$('state').innerHTML='<span class="spin"></span>Reconnecting…';await sleep(1500);}
-    }catch(e){if(myToken!==pollToken)return;$('state').innerHTML='<span class="spin"></span>Reconnecting…';await sleep(1500);}
-  }
+async function fetchMessages(announce,address=currentAddress,token=realtimeToken){if(!address)return false;try{const r=await fetch('/api/messages?address='+encodeURIComponent(address));if(!r.ok||address!==currentAddress||token!==realtimeToken)return false;const d=await r.json();if(address!==currentAddress||token!==realtimeToken)return false;handleIncoming(d.messages,!!announce);return true;}catch(e){return false;}}
+function stopFallback(){if(fallbackTimer){clearInterval(fallbackTimer);fallbackTimer=null;}}
+function startFallback(token){if(fallbackTimer)return;fallbackTimer=setInterval(()=>{if(token===realtimeToken&&!document.hidden)fetchMessages(true);},60000);}
+function scheduleReconnect(token,attempt){if(token!==realtimeToken)return;startFallback(token);$('state').innerHTML='<span class="spin"></span>Reconnecting…';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(async()=>{if(token!==realtimeToken)return;const valid=await checkInboxSession();if(token!==realtimeToken)return;if(valid)connectLive(token,attempt+1);else{resetRealtime();showInboxVerification();}},Math.min(10000,700*Math.pow(2,Math.min(attempt,4))));}
+function scheduleHydrationRetry(token,attempt){if(token!==realtimeToken)return;$('state').innerHTML='<span class="spin"></span>Retrying inbox…';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(async()=>{if(token!==realtimeToken)return;const valid=await checkInboxSession();if(token!==realtimeToken)return;if(valid)startRealtime({sessionVerified:true,attempt:attempt+1});else{resetRealtime();showInboxVerification();}},Math.min(10000,700*Math.pow(2,Math.min(attempt,4))));}
+function connectLive(token,attempt){
+  if(token!==realtimeToken||!currentAddress)return;
+  if(liveSocket&&liveSocketToken===token)return;
+  try{const scheme=location.protocol==='https:'?'wss':'ws';const socket=new WebSocket(scheme+'://'+location.host+'/api/live?address='+encodeURIComponent(currentAddress));liveSocket=socket;
+    liveSocketToken=token;
+    socket.onopen=()=>{if(token!==realtimeToken){socket.close();return;}stopFallback();$('state').innerHTML='<span class="sdot"></span>Live';$('addrStatus').className='status live';$('addrStatus').innerHTML='<span class="ldot"></span>Receiving';};
+    socket.onmessage=async event=>{if(token!==realtimeToken)return;try{const signal=JSON.parse(event.data);if(signal.type==='inbox-updated')await fetchMessages(true);}catch(e){}};
+    socket.onclose=()=>{if(liveSocket===socket){liveSocket=null;liveSocketToken=-1;}scheduleReconnect(token,attempt);};
+    socket.onerror=()=>socket.close();
+  }catch(e){scheduleReconnect(token,attempt);}
 }
-async function startRealtime(){
-  const myToken=++pollToken;primed=false;seenIds.clear();messages=[];render();
-  if(!currentAddress){$('addrStatus').className='status';return;}
-  $('state').innerHTML='<span class="spin"></span>Connecting…';
-  await fetchMessages();if(myToken!==pollToken)return;
-  messages.forEach(m=>{if(m&&m.id)seenIds.add(m.id);});
-  $('state').innerHTML='<span class="sdot"></span>Live';$('addrStatus').className='status live';$('addrStatus').innerHTML='<span class="ldot"></span>Receiving';primed=true;pollLoop(myToken);
+function resetRealtime(){++realtimeToken;cancelVerification();primed=false;seenIds.clear();messages=[];render();stopFallback();clearTimeout(reconnectTimer);realtimeStartPromise=null;realtimeStartToken=-1;if(liveSocket){const socket=liveSocket;liveSocket=null;liveSocketToken=-1;socket.close();}}
+async function initializeInboxAccess(){const address=currentAddress,token=realtimeToken;if(!address)return;const valid=await checkInboxSession();if(address!==currentAddress||token!==realtimeToken)return;if(valid){hideInboxVerification();await startRealtime({sessionVerified:true});}else showInboxVerification();}
+function startRealtime({sessionVerified=false,attempt=0}={}){
+  const address=currentAddress,myToken=realtimeToken;
+  if(!address){$('addrStatus').className='status';return Promise.resolve(false);}
+  if(liveSocket&&liveSocketToken===myToken)return Promise.resolve(true);
+  if(realtimeStartPromise&&realtimeStartToken===myToken)return realtimeStartPromise;
+  const promise=(async()=>{$('state').innerHTML='<span class="spin"></span>Connecting…';
+    if(!sessionVerified&&!(await checkInboxSession())){if(address===currentAddress&&myToken===realtimeToken)showInboxVerification();return false;}
+    if(address!==currentAddress||myToken!==realtimeToken)return false;
+    if(!(await fetchMessages(false,address,myToken))){if(address===currentAddress&&myToken===realtimeToken)scheduleHydrationRetry(myToken,attempt);return false;}
+    if(address!==currentAddress||myToken!==realtimeToken)return false;
+    messages.forEach(m=>{if(m&&m.id)seenIds.add(m.id);});primed=true;connectLive(myToken,0);return true;
+  })();
+  realtimeStartPromise=promise;realtimeStartToken=myToken;
+  promise.finally(()=>{if(realtimeStartPromise===promise){realtimeStartPromise=null;realtimeStartToken=-1;}});
+  return promise;
 }
 
 // PIN lock

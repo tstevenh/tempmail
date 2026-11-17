@@ -1,0 +1,32 @@
+name = "tempmail-integration-test"
+main = "../src/worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+MAIL_DOMAINS = "example.test"
+PUBLIC_SITE = "on"
+SITE_URL = "https://example.test"
+DASHBOARD_PASSWORD = "test-owner-password"
+INBOX_SESSION_SECRET = "test-inbox-session-secret"
+TURNSTILE_SECRET = "test-turnstile-secret"
+TURNSTILE_VERIFY_URL = "http://127.0.0.1:8788/turnstile"
+TURNSTILE_SITE_KEY = "test-site-key"
+MAIL_STORAGE_MODE = "d1"
+
+[[kv_namespaces]]
+binding = "TEMPMAIL_KV"
+id = "00000000000000000000000000000001"
+
+[[d1_databases]]
+binding = "TEMPMAIL_DB"
+database_name = "tempmail-integration-test"
+database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "../migrations"
+
+[[durable_objects.bindings]]
+name = "INBOX_HUB"
+class_name = "InboxHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["InboxHub"]

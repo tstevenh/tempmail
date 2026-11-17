@@ -1,96 +1,80 @@
-# Open Temp Mail — Permanent Mail + Admin Dashboard (Worker-Only Edition)
+# Open Temp Mail
 
-Open Temp Mail adalah website email pribadi/temp-mail permanen di atas **Cloudflare Email Routing + KV**,akses terkunci PIN, multi-domain, dan **Admin Dashboard**.
-
-## ✅ Cara kerja (ringkas)
+Cloudflare Worker temp mail with D1-backed inboxes, hibernating Durable Object WebSockets, and one Turnstile verification per browser session.
 
 ```
-Browser  ──▶  https://opentempmail.com        (Worker menyajikan HTML)
-         ──▶  https://opentempmail.com/api/*  (Worker yang sama melayani API)
-Email    ──▶  @life-ware.com  ──(Email Routing catch-all)──▶  Worker
+Email Routing → Worker → D1 message row → mailbox Durable Object → verified browser WebSocket
 ```
 
-- **Domain website + API:** `opentempmail.com` (lihat `routes` di `wrangler.toml`).
-- **Domain alamat email:** `life-ware.com` (lihat `MAIL_DOMAINS` di `wrangler.toml`).
-- Buka websitenya langsung di **https://opentempmail.com** (bukan Vercel).
+Mailbox data is retained for seven days by default. D1 stores `mailboxes`, `messages`, and the latest 250 `traffic_events`; KV is reserved for settings and blog posts. Old `inbox:*` KV values are only used for the controlled migration recovery window.
 
-## 🔑 Password / akses
-- **Situs publik:** `requirePin: false` (tanpa PIN wall). Bisa diaktifkan untuk mode privat dari dashboard → **Akses / Portal**.
-- **Password dashboard owner:** disimpan sebagai Cloudflare Worker **secret**, bukan di repo.
-  Set: `npx wrangler secret put DASHBOARD_PASSWORD` (prod) / `.dev.vars` untuk lokal.
+## Setup and deploy
 
-## 📁 File penting
-| File | Fungsi |
-|---|---|
-| `public/app.html` | Website utama (lock + buat email + inbox). |
-| `public/inbox.html` | Halaman inbox. |
-| `public/dashboard.html` | Admin Dashboard (`/dashboard`). |
-| `src/worker.js` | Backend Cloudflare: penyajian HTML, API, email handler, forward, security, cron cleanup. |
-| `wrangler.toml` | Konfigurasi Worker: domain, KV, password dashboard, cron. |
-
-## 🚀 Deploy (Worker-only)
 ```bash
 npm install
-npx wrangler login
+npx wrangler d1 create tempmail
+```
 
-# Pastikan KV namespace ada (id sudah terisi di wrangler.toml).
-# Bila perlu buat baru:
-# npx wrangler kv namespace create TEMPMAIL_KV   # lalu tempel id ke wrangler.toml
+Copy the returned UUID into `wrangler.toml` as `TEMPMAIL_DB.database_id`, then apply the schema and deploy:
 
+```bash
+npx wrangler d1 migrations apply tempmail --remote
 npx wrangler deploy
 ```
-Setelah deploy, Cloudflare otomatis membuat DNS + SSL untuk custom domain di `routes`.
-Buka **https://opentempmail.com** untuk memastikan website tampil.
 
-## ✉️ Aktifkan Email Routing (agar email/OTP masuk)
-Lakukan untuk **`life-ware.com`** (domain alamat email di `MAIL_DOMAINS`):
-1. Cloudflare → pilih domain `life-ware.com` → **Email → Email Routing**, aktifkan sampai MX/TXT valid.
-2. **Routing rules → Catch-all address → Action: Send to a Worker** → pilih Worker `tempmail`.
-3. Ulangi untuk setiap domain tambahan yang kamu daftarkan di `MAIL_DOMAINS`.
+Set these Worker secrets (never commit them):
 
-> Jika kamu menambah domain baru lewat dashboard, domain itu juga **wajib** diaktifkan Email Routing + catch-all ke Worker.
-
-## 🩺 Cek cepat kalau masih error
-Buka endpoint diagnostik (harus mengembalikan JSON `ok:true`):
+```bash
+npx wrangler secret put DASHBOARD_PASSWORD
+npx wrangler secret put TURNSTILE_SECRET
+npx wrangler secret put INBOX_SESSION_SECRET
 ```
-https://opentempmail.com/api/debug
+
+Create a Turnstile widget restricted to `opentempmail.com` and set its public site key in `TURNSTILE_SITE_KEY` in `wrangler.toml`. `TURNSTILE_EXPECTED_HOSTNAME` is already set to `opentempmail.com` for server-side hostname validation.
+
+`MAIL_DOMAINS` contains the email-receiving domains. Configure Cloudflare Email Routing and a catch-all “Send to Worker” rule for every listed domain.
+
+## KV → D1 cutover
+
+The migration is owner-only and idempotent. It reads the existing KV `addrs` index and every legacy inbox, inserts D1 rows with `INSERT OR IGNORE`, and verifies that D1 contains at least the source message count for every address in the batch.
+
+1. Temporarily set `MAIL_STORAGE_MODE = "kv"` and deploy the D1-capable release.
+2. Call `POST /api/admin/migrate-kv?pw=…` repeatedly with JSON such as `{"cursor":0,"limit":10}`. Use the returned `nextCursor` until `complete` is `true`; rerun from cursor `0` to compare current counts.
+3. Set `MAIL_STORAGE_MODE = "d1"` and deploy. D1 is now authoritative for mailbox reads, writes, cleanup, dashboard mail views, API-key routes, and traffic events.
+4. Replay the migration batches once in D1 mode. This arms a seven-day TTL on each old `inbox:*` KV key. Do not delete legacy keys sooner; they are the recovery archive.
+5. Purge cached HTML before enabling the session gate in production so no cached page attempts the retired `/api/poll` route.
+
+Do not change source mode to `d1` until the final KV batches report no mismatches and sampled records match in D1.
+
+## Browser and API routes
+
+| Route | Access |
+|---|---|
+| `POST /api/session` | Validates a Turnstile token and sets the signed `HttpOnly; Secure; SameSite=Lax` session cookie. |
+| `GET /api/session` | Reports current browser session validity. |
+| `GET /api/messages`, `GET /api/live`, `DELETE /api/delete`, `DELETE /api/clear` | Require the verified browser session. `/api/live` is an address-scoped WebSocket. |
+| `/api/v1/*` | Requires an API key only; it is intentionally exempt from Turnstile for bot integrations. |
+| `/api/admin/*`, `/api/debug` | Requires `?pw=DASHBOARD_PASSWORD`; `/api/debug` is not public. |
+
+The homepage and `/inbox` load the current D1 messages first, then listen for the Durable Object’s `{ "type": "inbox-updated" }` signal. They refetch only after that signal. A visible tab falls back to a 60-second refresh only while the WebSocket reconnects.
+
+## Cloudflare edge controls
+
+Configure these in the Cloudflare dashboard; they are intentionally outside Worker code so they do not create KV operations:
+
+- Enable Bot Fight Mode.
+- Rate-limit `/api/live` above 10 requests/minute/IP.
+- Rate-limit browser inbox paths (`/api/messages`, `/api/delete`, `/api/clear`) above 20 requests/minute/IP.
+- Challenge `/api/unlock` above 5 requests/minute/IP.
+- Apply a separate 120 requests/minute/IP limit to `/api/v1/*`.
+
+Review D1 reads, writes, storage, Durable Object requests, Worker requests, Turnstile failures, and WAF events daily. Investigate at 70% of a free-tier daily limit. D1’s free tier is currently 5M rows read/day, 100k rows written/day, and 5 GB storage; confirm current limits in Cloudflare’s pricing documentation before relying on them.
+
+## Local verification
+
+```bash
+npm test
+npx wrangler deploy --dry-run
 ```
-- Jika halaman ini **tidak terbuka** → Worker belum ter-deploy atau domain belum aktif (jalankan `npx wrangler deploy`, cek DNS/SSL di Cloudflare).
-- Jika `kvBound:false` → binding `TEMPMAIL_KV` di `wrangler.toml` salah/ kosong.
-- Jika website terbuka tapi PIN salah terus → cek `sitePin` di dashboard → **Akses / Portal** (default `12356`).
 
-## 🛠️ Endpoint API (semua same-origin di domain Worker)
-
-### Publik
-| Method | Path | Keterangan |
-|---|---|---|
-| GET | `/api/config` | Konfigurasi publik (tema, domain, portal). |
-| GET | `/api/unlock?pin=...` | Verifikasi PIN website (server-side). |
-| GET | `/api/messages?address=...` | Pesan satu alamat. |
-| DELETE | `/api/delete?address=...&key=...` | Hapus satu pesan. |
-| DELETE | `/api/clear?address=...` | Hapus semua pesan satu alamat. |
-| GET | `/api/debug` | Diagnostik backend. |
-
-### Bot / REST (perlu API Key — `?apikey=` atau header `x-api-key`)
-| Method | Path | Keterangan |
-|---|---|---|
-| GET | `/api/v1/latest?address=...` | Pesan terbaru (ambil OTP bot). |
-| GET | `/api/v1/messages?address=...` | Semua pesan satu alamat. |
-| GET | `/api/v1/inboxes` | Daftar semua alamat. |
-
-### Owner (perlu `?pw=DASHBOARD_PASSWORD`)
-| Method | Path | Keterangan |
-|---|---|---|
-| GET | `/api/admin/messages` | Seluruh mail. |
-| GET/POST | `/api/admin/settings` | Baca / simpan seluruh setting. |
-| GET/DELETE | `/api/admin/traffic` | Live traffic log / bersihkan. |
-| GET | `/api/admin/cleanup` | Jalankan cleanup manual. |
-| GET | `/api/admin/test-notify` | Kirim tes webhook/Telegram. |
-
-## 🧹 Auto Cleanup
-- Cron di `wrangler.toml` (`crons = ["0 */6 * * *"]`) memicu cleanup tiap 6 jam.
-- Aktifkan & atur retensi (hari) + maks pesan/inbox di **Dashboard → Auto Cleanup**.
-
-## ⚠️ Catatan
-- Pesan tersimpan permanen (tanpa TTL) kecuali Auto Cleanup aktif.
-- Semua setting disimpan di KV (`settings:v1`) dan bisa diubah tanpa deploy ulang.
+The integration suite creates temporary local D1 databases, applies the real migration, and verifies session enforcement, API-key exemption, D1 CRUD and cleanup, idempotent KV migration, Durable Object notifications, and the browser reconnect fallback implementation.
